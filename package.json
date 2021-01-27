@@ -10,14 +10,24 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:4p-editor.helloWorld"
+		"onCommand:4p-editor.echo",
+		"onCommand:4p-editor.startTestFileEdit",
+		"onCommand:4p-editor.stopTestFileEdit"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "4p-editor.helloWorld",
-				"title": "Hello World"
+				"command": "4p-editor.echo",
+				"title": "4P Editor: Echo"
+			},
+			{
+				"command": "4p-editor.startTestFileEdit",
+				"title": "4P Editor: Start Test File Edit"
+			},
+			{
+				"command": "4p-editor.stopTestFileEdit",
+				"title": "4P Editor: Stop Test File Edit"
 			}
 		]
 	},

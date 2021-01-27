@@ -1,27 +1,91 @@
 // The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
+// This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
+  // This line of code will only be executed once when the extension is activated
+  console.log("4p-editor is active!");
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "4p-editor" is now active!');
+  // The "4p-editor.echo" command has been defined in the package.json file
+  // "4p-editor.echo" must match the command field in package.json
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.echo", () => {
+      // Display a message box to the user
+      vscode.window.showInformationMessage("Echo from 4p-editor!");
+    })
+  );
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('4p-editor.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
+  let editor: vscode.TextEditor | undefined;
+  let document: vscode.TextDocument | undefined;
+  let changeSubscription: vscode.Disposable | undefined;
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from 4p-editor!');
-	});
+  // This is a test command for reading from and writing to text editor
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.startTestFileEdit", () => {
+      vscode.window.showInformationMessage("Test edit started!");
 
-	context.subscriptions.push(disposable);
+      // This is like the current opened window in the VSCode screen
+      editor = vscode.window.activeTextEditor;
+      document = editor?.document;
+
+      changeSubscription = vscode.workspace.onDidChangeTextDocument((event) => {
+        if (!document || !editor) {
+          return;
+        }
+
+        // This function editor.edit() lets you modify the content of the current document
+        editor.edit((editBuilder) => {
+          // Detect changes in the editor and convert it to uppercase
+          event.contentChanges.forEach((change) => {
+            const previousText = document?.getText(change.range);
+            console.log("Previous text:", previousText);
+            console.log("Change text:", change.text);
+
+            // Don't go crazy with infinite change cycle
+            if (previousText === change.text) {
+              return;
+            }
+
+            // I couldn't find a workaround with text with containing new lines. For now I disabled it to prevent infinite cycle
+            if (change.text.includes("\n")) {
+              return;
+            }
+
+            // The change.range gives you the range of the old content's range, not the range of the newly added content
+            // Calculate the range where newly added content should be put into
+            const replaceRange = new vscode.Range(
+              change.range.start,
+              new vscode.Position(
+                change.range.end.line,
+                change.range.start.character + change.text.length
+              )
+            );
+
+            editBuilder.replace(replaceRange, change.text.toUpperCase());
+          });
+        });
+      });
+
+      // Subscriptions in context.subscriptions get disposed when the extension is deactivated
+      context.subscriptions.push(changeSubscription);
+    })
+  );
+
+  // This is a the stop command for file test edit
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.stopTestFileEdit", () => {
+      if (changeSubscription) {
+        // Clear the document and editor so that they don't get affected by the extension because of 4p-editor.startTestFileEdit command
+        document = undefined;
+        editor = undefined;
+        changeSubscription.dispose();
+        vscode.window.showInformationMessage("Test edit stopped!");
+      } else {
+        vscode.window.showInformationMessage("Test edit is not working!");
+      }
+    })
+  );
 }
 
-// this method is called when your extension is deactivated
+// This method is called when the extension is deactivated
 export function deactivate() {}
