@@ -1,5 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
+import { send } from "process";
 import * as vscode from "vscode";
+// Network
+import * as network from "./network";
 
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
@@ -83,6 +86,19 @@ export function activate(context: vscode.ExtensionContext) {
       } else {
         vscode.window.showInformationMessage("Test edit is not working!");
       }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.testListen", async () => {
+      network.listen(8000);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.testSendData", async () => {
+      // This ip adress will dummy and will be different for different machines
+      network.sendData("192.168.1.67", 8000, { message: "Hello Server!" });
     })
   );
 }

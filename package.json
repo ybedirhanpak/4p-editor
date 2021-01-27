@@ -12,22 +12,37 @@
 	"activationEvents": [
 		"onCommand:4p-editor.echo",
 		"onCommand:4p-editor.startTestFileEdit",
-		"onCommand:4p-editor.stopTestFileEdit"
+		"onCommand:4p-editor.stopTestFileEdit",
+		"onCommand:4p-editor.testListen",
+		"onCommand:4p-editor.testSendData"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "4p-editor.echo",
-				"title": "4P Editor: Echo"
+				"category": "4P Editor",
+				"title": "Echo"
 			},
 			{
 				"command": "4p-editor.startTestFileEdit",
-				"title": "4P Editor: Start Test File Edit"
+				"category": "4P Editor",
+				"title": "Start Test File Edit"
 			},
 			{
 				"command": "4p-editor.stopTestFileEdit",
-				"title": "4P Editor: Stop Test File Edit"
+				"category": "4P Editor",
+				"title": "Stop Test File Edit"
+			},
+			{
+				"command": "4p-editor.testListen",
+				"category": "4P Editor",
+				"title": "Test Listen"
+			},
+			{
+				"command": "4p-editor.testSendData",
+				"category": "4P Editor",
+				"title": "Test Send Data"
 			}
 		]
 	},
