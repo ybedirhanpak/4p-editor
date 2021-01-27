@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 import * as vscode from "vscode";
 // Network
-import * as network from "./network";
+import { Client } from "./network";
 import { SamplePanel } from "./ui/SamplePanel";
 import { SidebarProvider } from "./ui/SidebarProvider";
 
@@ -9,8 +9,8 @@ import { SidebarProvider } from "./ui/SidebarProvider";
 export function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when the extension is activated
   console.log("4p-editor is active!");
-
-  const sidebarProvider = new SidebarProvider(context.extensionUri);
+  const client = new Client();
+  const sidebarProvider = new SidebarProvider(context.extensionUri, client);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "4p-editor-sidebar",
@@ -107,14 +107,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.testListen", async () => {
-      network.listen(8000);
+      client.listen(8000);
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.testSendData", async () => {
       // This ip adress will dummy and will be different for different machines
-      network.sendData("192.168.1.67", 8000, { message: "Hello Server!" });
+      client.sendData("192.168.1.67", 8000, { message: "Hello Server!" });
     })
   );
 }

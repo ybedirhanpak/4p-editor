@@ -1,11 +1,15 @@
 import * as vscode from "vscode";
 import getNonce from "./getNonce";
+import { Client } from "../network";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   _view?: vscode.WebviewView;
   _doc?: vscode.TextDocument;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly _extensionUri: vscode.Uri,
+    private readonly client: Client
+  ) {}
 
   public resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
@@ -21,6 +25,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
+        case "login": {
+          if (!data.value) {
+            return;
+          }
+          const { username } = data.value;
+          this.client.login(username);
+          vscode.window.showInformationMessage(`${username} logged in!`);
+          break;
+        }
         case "onInfo": {
           if (!data.value) {
             return;
@@ -56,6 +69,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(this._extensionUri, "media", "sidebar.css")
     );
 
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, "media", "sidebar.js")
+    );
+
     // Use a nonce to only allow a specific script to be run.
     const nonce = getNonce();
 
@@ -72,19 +89,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         <link href="${styleResetUri}" rel="stylesheet">
         <link href="${styleVSCodeUri}" rel="stylesheet">
         <link href="${sidebarUri}" rel="stylesheet">
-        <script nonce="${nonce}">
-        </script>
       </head>
       <body>
         <h2>Login</h2>
-        <input/>
-        <button>Login</button>
+        <input id="login-input" type="text"/>
+        <button id="login-button">Login</button>
         <br/>
         <h2>Public Sessions:</h2>
         <ul>
           <li><button>Ali</button></li>
           <li><button>Veli</button></li>
         </ul>
+        <script nonce="${nonce}" src="${scriptUri}">
+        </script>
       </body>
       </html>`;
   }
