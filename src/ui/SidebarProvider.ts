@@ -60,7 +60,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
-			<html lang="en">
+      <html lang="en">
       <head>
         <meta charset="UTF-8">
         <!--
@@ -86,6 +86,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           <li><button>Veli</button></li>
         </ul>
       </body>
-			</html>`;
+      </html>`;
   }
 }
