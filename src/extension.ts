@@ -1,5 +1,4 @@
 // The module 'vscode' contains the VS Code extensibility API
-import { send } from "process";
 import * as vscode from "vscode";
 // Network
 import * as network from "./network";
