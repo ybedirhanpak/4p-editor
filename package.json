@@ -14,7 +14,8 @@
 		"onCommand:4p-editor.startTestFileEdit",
 		"onCommand:4p-editor.stopTestFileEdit",
 		"onCommand:4p-editor.testListen",
-		"onCommand:4p-editor.testSendData"
+		"onCommand:4p-editor.testSendData",
+		"onCommand:4p-editor.showSamplePanel"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
@@ -43,6 +44,11 @@
 				"command": "4p-editor.testSendData",
 				"category": "4P Editor",
 				"title": "Test Send Data"
+			},
+			{
+				"command": "4p-editor.showSamplePanel",
+				"category": "4P Editor",
+				"title": "Show Sample Panel"
 			}
 		]
 	},

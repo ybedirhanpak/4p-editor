@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 // Network
 import * as network from "./network";
+import { SamplePanel } from "./ui/SamplePanel";
 
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
@@ -14,6 +15,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("4p-editor.echo", () => {
       // Display a message box to the user
       vscode.window.showInformationMessage("Echo from 4p-editor!");
+    })
+  );
+
+  // Show sample panel
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.showSamplePanel", () => {
+      SamplePanel.createOrShow(context.extensionUri);
     })
   );
 
