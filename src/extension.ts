@@ -1,13 +1,22 @@
 // The module 'vscode' contains the VS Code extensibility API
-import { send } from "process";
 import * as vscode from "vscode";
 // Network
 import * as network from "./network";
+import { SamplePanel } from "./ui/SamplePanel";
+import { SidebarProvider } from "./ui/SidebarProvider";
 
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when the extension is activated
   console.log("4p-editor is active!");
+
+  const sidebarProvider = new SidebarProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      "4p-editor-sidebar",
+      sidebarProvider
+    )
+  );
 
   // The "4p-editor.echo" command has been defined in the package.json file
   // "4p-editor.echo" must match the command field in package.json
@@ -15,6 +24,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("4p-editor.echo", () => {
       // Display a message box to the user
       vscode.window.showInformationMessage("Echo from 4p-editor!");
+    })
+  );
+
+  // Show sample panel
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.showSamplePanel", () => {
+      SamplePanel.createOrShow(context.extensionUri);
     })
   );
 

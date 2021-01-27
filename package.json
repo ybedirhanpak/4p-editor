@@ -14,10 +14,32 @@
 		"onCommand:4p-editor.startTestFileEdit",
 		"onCommand:4p-editor.stopTestFileEdit",
 		"onCommand:4p-editor.testListen",
-		"onCommand:4p-editor.testSendData"
+		"onCommand:4p-editor.testSendData",
+		"onCommand:4p-editor.showSamplePanel",
+		"onView:4p-editor-sidebar"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "4p-editor-sidebar-view",
+					"title": "4P Editor",
+					"icon": "media/mirror.svg"
+				}
+			]
+		},
+		"views": {
+			"4p-editor-sidebar-view": [
+				{
+					"type": "webview",
+					"id": "4p-editor-sidebar",
+					"name": "4P Editor",
+					"icon": "media/mirror.svg",
+					"contextualTitle": "4P Editor"
+				}
+			]
+		},
 		"commands": [
 			{
 				"command": "4p-editor.echo",
@@ -43,6 +65,11 @@
 				"command": "4p-editor.testSendData",
 				"category": "4P Editor",
 				"title": "Test Send Data"
+			},
+			{
+				"command": "4p-editor.showSamplePanel",
+				"category": "4P Editor",
+				"title": "Show Sample Panel"
 			}
 		]
 	},
