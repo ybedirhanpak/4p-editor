@@ -1,65 +1,33 @@
-# 4p-editor README
+# 4P Editor
 
-This is the README for your extension "4p-editor". After writing up a brief description, we recommend including the following sections.
+This is a VSCode Extension called 4P Editor (Peer-to-peer pair programming Editor) which enables developers to create sessions for pair programming.
 
-## Features
+This project is implemented in the scope of Boğaziçi University CMPE487 course.
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+## Contributors
 
-For example if there is an image subfolder under your extension project workspace:
+- Yahya Bedirhan Pak
+- Tahir Kaan Özel
 
-\!\[feature X\]\(images/feature-x.png\)
+## Development
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- In order to run the extension in your local, you need to first clone the repository and open it with VSCode:
 
-## Requirements
+```
+git clone https://github.com/ybedirhanpak/4p-editor.git
+code 4p-editor
+```
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Then install the npm packages:
 
-## Extension Settings
+```
+npm install
+```
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+- Launch setting called `Run Extension` is located in `.vscode/launch.json`, so you can either run the project with `F5` or open `Run` tab and select `Run Extension`.
 
-For example:
+- There will be another VSCode window opened for you to test the extension.
 
-This extension contributes the following settings:
+- Type `Command + Shift + P` for MacOS, or `Control + Shift + P` for Windows, to type extension commands.
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- Select sidebar icon at the left and see the main control menu of the extension.
