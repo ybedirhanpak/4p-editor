@@ -107,14 +107,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.testListen", async () => {
-      client.listen(8000);
+      client.listenTCP(8000);
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.testSendData", async () => {
       // This ip adress will dummy and will be different for different machines
-      client.sendData("192.168.1.67", 8000, { message: "Hello Server!" });
+      client.sendDataTCP("192.168.1.67", 8000, { message: "Hello Server!" });
     })
   );
 }
