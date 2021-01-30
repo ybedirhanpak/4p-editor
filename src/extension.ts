@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 // Network
 import { Client } from "./network";
+import { MessageType } from "./message";
 import { SamplePanel } from "./ui/SamplePanel";
 import { SidebarProvider } from "./ui/SidebarProvider";
 
@@ -114,7 +115,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.testSendData", async () => {
       // This ip adress will dummy and will be different for different machines
-      client.sendDataTCP("192.168.1.67", 8000, { message: "Hello Server!" });
+      const message = client.createMessage(MessageType.discover, null);
+      client.sendDataTCP("192.168.1.67", 8000, message);
     })
   );
 }

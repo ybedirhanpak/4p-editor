@@ -1,10 +1,19 @@
 import * as net from "net";
 import * as dgram from "dgram";
+import { Session, Message, MessageType } from "./message";
 
 const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
 
 export class Client {
+  public username = "";
+  public session: Session = {
+    public: false,
+    joinable: false,
+  };
+
+  constructor() {}
+
   public listenTCP(port = DEFAULT_TCP_PORT) {
     const server = net.createServer();
 
@@ -17,29 +26,21 @@ export class Client {
         "Connection from",
         conn.remoteAddress + ":" + conn.remotePort
       );
+
       conn.on("data", (data) => {
-        console.log("Server received data:", data.toString());
-        conn.write(JSON.stringify({ message: "Hello Client!" }));
+        this.handleReceivedMessage(JSON.parse(data.toString()));
       });
     });
   }
 
-  public sendDataTCP(host: string, port: number, data: any) {
+  public sendDataTCP(host: string, port: number, data: Message) {
     const client = new net.Socket();
 
     client.connect({ port, host }, () => {
       client.write(JSON.stringify(data));
-    });
-
-    client.on("data", (data) => {
-      console.log("Client received data:", data.toString());
       client.end();
     });
   }
-
-  login = (username: string) => {
-    console.log("Client log in with", username);
-  };
 
   public listenUDP(port = DEFAULT_UDP_PORT) {
     const server = dgram.createSocket("udp4");
@@ -54,17 +55,7 @@ export class Client {
     server.on("message", (message, remoteInfo) => {
       console.log("Server received:", message.toString());
       console.log("Remote info:", remoteInfo);
-
-      server.send(
-        "Hello Client!",
-        remoteInfo.port,
-        remoteInfo.address,
-        (error) => {
-          if (error) {
-            console.log("Server got an error while sending message:", error);
-          }
-        }
-      );
+      this.handleBroadcastMessage(JSON.parse(message.toString()));
     });
 
     server.on("error", (error) => {
@@ -79,37 +70,95 @@ export class Client {
     server.bind(port);
   }
 
-  public sendUDPData(host: string, port: number = DEFAULT_UDP_PORT, data: any) {
+  public sendUDPData(
+    host: string,
+    port: number = DEFAULT_UDP_PORT,
+    data: Message
+  ) {
     const client = dgram.createSocket("udp4");
 
-    client.on("message", function (message, remoteInfo) {
-      console.log("Client received:", message.toString());
-      console.log("Remote info:", remoteInfo);
-      client.close();
-    });
-
-    client.send(data, port, host, (error) => {
+    client.send(JSON.stringify(data), port, host, (error) => {
       if (error) {
-        if (error) {
-          console.log("Client got an error while sending message:", error);
-        }
+        console.log("Client got an error while sending message:", error);
       }
     });
+
+    client.close();
   }
 
-  public sendUDPBroadcast(port: number = DEFAULT_UDP_PORT, data: any) {
+  public sendUDPBroadcast(port: number = DEFAULT_UDP_PORT, data: Message) {
     const client = dgram.createSocket("udp4");
 
     client.bind(0, undefined, () => {
       client.setBroadcast(true);
     });
 
-    client.send(data, 0, data.length, port, "192.168.1.255");
+    const dataString = JSON.stringify(data);
+    client.send(dataString, 0, dataString.length, port, "192.168.1.255");
+    client.close();
+  }
 
-    client.on("message", function (message, remoteInfo) {
-      console.log("Client received:", message.toString());
-      console.log("Remote info:", remoteInfo);
-      client.close();
-    });
+  public createMessage(type: MessageType, payload: any): Message {
+    return {
+      username: this.username,
+      session: this.session,
+      payload: payload,
+      type: type,
+    };
+  }
+
+  private handleBroadcastMessage(message: Message) {
+    console.log("Broadcast message received", message);
+    // TODO: Implement this function
+  }
+
+  private handleReceivedMessage(message: Message) {
+    console.log("Message received", message);
+    // TODO: Implement this function
+  }
+
+  public login(username: string) {
+    console.log("Client log in with", username);
+    // TODO: Implement this function
+  }
+
+  public sendDiscovery() {
+    // TODO: Implement this function
+  }
+
+  public sendGoodbye() {
+    // TODO: Implement this function
+  }
+
+  public createSession() {
+    // TODO: Generate key for this session
+    // TODO: Implement this function
+  }
+
+  public joinPublicSession(username: string) {
+    // TODO: Implement this function
+  }
+
+  public joinPrivateSession(username: string, key: string) {
+    // TODO: Implement this function
+  }
+
+  public leaveSession(username: string) {
+    // TODO: Implement this function
+  }
+
+  public endSession() {
+    // TODO: Define parameters
+    // TODO: Implement this function
+  }
+
+  public sendTextChanges() {
+    // TODO: Define parameters
+    // TODO: Implement this function
+  }
+
+  public handleTextChanges() {
+    // TODO: Define parameters
+    // TODO: Implement this function
   }
 }
