@@ -22,10 +22,7 @@ export class Client {
     });
 
     server.on("connection", (conn) => {
-      console.log(
-        "Connection from",
-        conn.remoteAddress + ":" + conn.remotePort
-      );
+      console.log("Connection from", conn.remoteAddress + ":" + conn.remotePort);
 
       conn.on("data", (data) => {
         this.handleReceivedMessage(JSON.parse(data.toString()));
@@ -70,11 +67,7 @@ export class Client {
     server.bind(port);
   }
 
-  public sendUDPData(
-    host: string,
-    port: number = DEFAULT_UDP_PORT,
-    data: Message
-  ) {
+  public sendUDPData(host: string, port: number = DEFAULT_UDP_PORT, data: Message) {
     const client = dgram.createSocket("udp4");
 
     client.send(JSON.stringify(data), port, host, (error) => {

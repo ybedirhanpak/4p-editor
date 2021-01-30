@@ -13,10 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
   const client = new Client();
   const sidebarProvider = new SidebarProvider(context.extensionUri, client);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      "4p-editor-sidebar",
-      sidebarProvider
-    )
+    vscode.window.registerWebviewViewProvider("4p-editor-sidebar", sidebarProvider)
   );
 
   // The "4p-editor.echo" command has been defined in the package.json file
