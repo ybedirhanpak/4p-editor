@@ -12,6 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
   console.log("4p-editor is active!");
   const client = new Client();
   const sidebarProvider = new SidebarProvider(context.extensionUri, client);
+  client.setUIProvider(sidebarProvider);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("4p-editor-sidebar", sidebarProvider)
   );

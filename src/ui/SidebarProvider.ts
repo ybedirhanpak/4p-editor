@@ -2,11 +2,20 @@ import * as vscode from "vscode";
 import getNonce from "./getNonce";
 import { Client } from "../network";
 
+export interface UIData {
+  type: string;
+  payload: any;
+}
+
 export class SidebarProvider implements vscode.WebviewViewProvider {
   _view?: vscode.WebviewView;
   _doc?: vscode.TextDocument;
 
   constructor(private readonly _extensionUri: vscode.Uri, private readonly client: Client) {}
+
+  public onClientMessage(data: UIData) {
+    this._view?.webview.postMessage(data);
+  }
 
   public resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
@@ -20,29 +29,38 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-    webviewView.webview.onDidReceiveMessage(async (data) => {
+    webviewView.webview.onDidReceiveMessage(async (data: UIData) => {
       switch (data.type) {
         case "login": {
-          if (!data.value) {
+          if (!data.payload) {
             return;
           }
-          const { username } = data.value;
+          const { username } = data.payload;
           this.client.login(username);
           vscode.window.showInformationMessage(`${username} logged in!`);
           break;
         }
-        case "onInfo": {
-          if (!data.value) {
+        case "joinPublicSession": {
+          if (!data.payload) {
             return;
           }
-          vscode.window.showInformationMessage(data.value);
+          const { username } = data.payload;
+          this.client.joinPublicSession(username);
+          vscode.window.showInformationMessage(`Join session of ${username}`);
+          break;
+        }
+        case "onInfo": {
+          if (!data.payload) {
+            return;
+          }
+          vscode.window.showInformationMessage(data.payload);
           break;
         }
         case "onError": {
-          if (!data.value) {
+          if (!data.payload) {
             return;
           }
-          vscode.window.showErrorMessage(data.value);
+          vscode.window.showErrorMessage(data.payload);
           break;
         }
       }
@@ -81,21 +99,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           Use a content security policy to only allow loading images from https or from our extension directory,
           and only allow scripts that have a specific nonce.
         -->
-        <meta http-equiv="Content-Security-Policy" content="img-src https: data:; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';">
+        <meta http-equiv="Content-Security-Policy" content="img-src https: message:payload style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="${styleResetUri}" rel="stylesheet">
         <link href="${styleVSCodeUri}" rel="stylesheet">
         <link href="${sidebarUri}" rel="stylesheet">
       </head>
       <body>
-        <h2>Login</h2>
-        <input id="login-input" type="text"/>
-        <button id="login-button">Login</button>
+        <div id="welcome-wrapper">
+          <h3 id="welcome"></h3>
+        </div>
+        <div id="login-wrapper">
+          <h3>Login</h3>
+          <input id="login-input" type="text"/>
+          <button id="login-button">Login</button>
+        </div>
         <br/>
-        <h2>Public Sessions:</h2>
-        <ul>
-          <li><button>Ali</button></li>
-          <li><button>Veli</button></li>
+        <h3>Other clients:</h3>
+        <ul id="other-clients-list">
         </ul>
         <script nonce="${nonce}" src="${scriptUri}">
         </script>
