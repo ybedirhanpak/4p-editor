@@ -2,12 +2,12 @@ import * as net from "net";
 import * as dgram from "dgram";
 import { UIData } from "./ui/SidebarProvider";
 import { Session, Message, MessageType } from "./message";
-import { Session, Session } from "inspector";
 
 const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
 const DISCOVERY_BULK = 3;
 const DISCOVERY_INTERVAL = 60 * 1000;
+var sessionParameters: [string, string];
 
 export interface ClientStatus {
   username: string;
@@ -19,8 +19,9 @@ export class Client {
   public username = "";
   public session: Session = {
     isPublic: false,
-    joinable: false,
+    joinable: false
   };
+  private key = "" ;
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
   private uiProvider: any;
@@ -204,27 +205,94 @@ export class Client {
       // TODO: Generate key for this session
     // TODO: Implement this function
     const key = Math.random().toString(36).substring(7);
-    return {
+    this.session = {
       isPublic: isPublic,
-      joinable: joinable,
-      key: key
-        };
+      joinable: joinable
+    };
+    this.key= key;
+
+
+    const statusUpdateMessage = this.createMessage(MessageType.status, this.session );
+    this.sendUDPBroadcast(12345,statusUpdateMessage);
+
+
+    return  this.session;
+
   }
   public joinPublicSession(username: string) {
-    // TODO: Implement this function
+    // TODO: Implement this function  
+    sessionParameters= [username,""];
+
+    const joinPublicSessionMessage = this.createMessage(MessageType.joinSession,sessionParameters);
+    this.sendDataTCP("", 12345, joinPublicSessionMessage);
   }
 
   public joinPrivateSession(username: string, key: string) {
     // TODO: Implement this function
+    sessionParameters= [username,key];
+
+    const joinPrivateSessionMessage = this.createMessage(MessageType.joinSession, sessionParameters);
+    this.sendDataTCP("", 12345, joinPrivateSessionMessage);
+
   }
 
   public leaveSession(username: string) {
     // TODO: Implement this function
+    sessionParameters= [username,""];
+
+    this.session = {
+      isPublic: false,
+      joinable: false
+    };
+
+    const leaveSessionMessage = this.createMessage(MessageType.leaveSession, sessionParameters);
+    this.sendDataTCP("", 12345, leaveSessionMessage);
+
+
+    const statusUpdateMessage = this.createMessage(MessageType.status );
+    this.sendUDPBroadcast(12345, statusUpdateMessage);
+
+  }
+
+
+  // IF public session --> key is "" so this parameter will always
+  // be used except its a private session
+  // this handles the sessin join request of a other user
+  public handleSessionJoin(key : string) {
+    // TODO: Implement this function
+    if (this.key === key && this.session.joinable === true){
+      this.session.joinable = false;}
+   
+      const statusUpdateMessage = this.createMessage(MessageType.status, );
+
+    const responseSessionMessage = this.createMessage(MessageType.leaveSession, "success");
+    this.sendDataTCP("", 12345, responseSessionMessage);
+
+  }
+
+
+  // handles the response of a session join request --> if payload succes --> session is joined
+  public handleResponseSessionJoin(message: Message) {
+
+    // TODO: Implement this function
+    if (message.payload === "success"){
+      message.session.joinable = false;
+      this.session = message.session;
+      const statusUpdateMessage = this.createMessage(MessageType.status);
+      this.sendUDPBroadcast(12345,statusUpdateMessage);
+        }
   }
 
   public endSession() {
-    // TODO: Define parameters
     // TODO: Implement this function
+    sessionParameters= [this.username,""];
+    this.session = {
+      isPublic: false,
+      joinable: false
+    };
+    const closeSessionMessage = this.createMessage(MessageType.leaveSession, sessionParameters);
+    this.sendDataTCP("", 12345, closeSessionMessage);
+
   }
 
   public sendTextChanges() {
