@@ -1,6 +1,8 @@
 export interface Session {
-  public: boolean;
+  isublic: boolean;
   joinable: boolean;
+  key: string;
+
 }
 
 export enum MessageType {

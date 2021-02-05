@@ -2,6 +2,7 @@ import * as net from "net";
 import * as dgram from "dgram";
 import { UIData } from "./ui/SidebarProvider";
 import { Session, Message, MessageType } from "./message";
+import { Session, Session } from "inspector";
 
 const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
@@ -17,7 +18,7 @@ export interface ClientStatus {
 export class Client {
   public username = "";
   public session: Session = {
-    public: false,
+    isPublic: false,
     joinable: false,
   };
   private discoveryInterval: NodeJS.Timeout | undefined;
@@ -196,11 +197,19 @@ export class Client {
     this.sendGoodbye();
   }
 
-  public createSession() {
-    // TODO: Generate key for this session
+  
+  
+  
+  public createSession(isPublic: boolean, joinable: boolean): Session{
+      // TODO: Generate key for this session
     // TODO: Implement this function
+    const key = Math.random().toString(36).substring(7);
+    return {
+      isPublic: isPublic,
+      joinable: joinable,
+      key: key
+        };
   }
-
   public joinPublicSession(username: string) {
     // TODO: Implement this function
   }
