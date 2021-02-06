@@ -7,7 +7,7 @@ This project is implemented in the scope of Boğaziçi University CMPE487 course
 ## Contributors
 
 - Yahya Bedirhan Pak
-- Tahir Kaan Özel
+- Tahir Kaan Ögel
 
 ## Development
 
