@@ -6,6 +6,7 @@ import { Session, Message, MessageType } from "./message";
 const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
 const DISCOVERY_BULK = 3;
+const STATUS_BULK = 3;
 const DISCOVERY_INTERVAL = 60 * 1000;
 var sessionParameters: [string, string];
 
@@ -14,14 +15,21 @@ export interface ClientStatus {
   ip: string;
   session: Session;
 }
-
+export interface JoinPrivateRequest {
+  key: string;
+}
+export interface JoinSessionRespone {
+  accept: boolean;
+  message?: string;
+}
 export class Client {
   public username = "";
   public session: Session = {
     isPublic: false,
-    joinable: false
+    joinable: false,
   };
-  private key = "" ;
+  private key = "";
+  private joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
   private uiProvider: any;
@@ -158,6 +166,29 @@ export class Client {
   private handleReceivedMessage(message: Message, ip: string) {
     console.log("Message received", message);
     // TODO: Implement this function
+    const { username, type, session, payload } = message;
+
+    switch (type) {
+      case MessageType.joinSession:
+        // Add user into client dictionary
+        const { key } = payload;
+        this.handleSessionJoin(key, ip, username);
+
+        break;
+      case MessageType.responseSession:
+        this.handleJoinSessionResponse(payload, username);
+        // Remove user from client dictionary
+        break;
+      case MessageType.leaveSession:
+        this.handleLeaveSessionMessage(username);
+        // Remove user from client dictionary
+        break;
+      case MessageType.closeSession:
+        this.handleCloseSessionMessage(username);
+        break;
+      default:
+        break;
+    }
   }
 
   private sendDiscovery() {
@@ -174,6 +205,13 @@ export class Client {
     }, DISCOVERY_INTERVAL);
   }
 
+  private sendStatus() {
+    
+    for (let i = 0; i < DISCOVERY_BULK; i++) {
+      const statusUpdateMessage = this.createMessage(MessageType.status);
+      this.sendUDPBroadcast(DEFAULT_UDP_PORT, statusUpdateMessage);
+    }
+  }
   private sendGoodbye() {
     const goodbyeMessage = this.createMessage(MessageType.goodbye);
 
@@ -198,101 +236,136 @@ export class Client {
     this.sendGoodbye();
   }
 
-  
-  
-  
-  public createSession(isPublic: boolean, joinable: boolean): Session{
-      // TODO: Generate key for this session
-    // TODO: Implement this function
+  public createSession(isPublic: boolean): Session {
     const key = Math.random().toString(36).substring(7);
     this.session = {
       isPublic: isPublic,
-      joinable: joinable
+      joinable: true,
     };
-    this.key= key;
+    this.key = key;
 
+    this.sendStatus();
 
-    const statusUpdateMessage = this.createMessage(MessageType.status, this.session );
-    this.sendUDPBroadcast(12345,statusUpdateMessage);
-
-
-    return  this.session;
-
+    return this.session;
   }
   public joinPublicSession(username: string) {
-    // TODO: Implement this function  
-    sessionParameters= [username,""];
+    const otherClient = this.otherClients[username];
+    const { ip, session } = otherClient;
 
-    const joinPublicSessionMessage = this.createMessage(MessageType.joinSession,sessionParameters);
-    this.sendDataTCP("", 12345, joinPublicSessionMessage);
+    if (session.joinable) {
+      const joinPublicSessionMessage = this.createMessage(MessageType.joinSession);
+      this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinPublicSessionMessage);
+    } else {
+      // TODO: if not --> display to user
+    }
   }
 
   public joinPrivateSession(username: string, key: string) {
-    // TODO: Implement this function
-    sessionParameters= [username,key];
+    sessionParameters = [username, key];
+    const joinRequest: JoinPrivateRequest = { key };
 
-    const joinPrivateSessionMessage = this.createMessage(MessageType.joinSession, sessionParameters);
-    this.sendDataTCP("", 12345, joinPrivateSessionMessage);
+    // get ip from otherclients array and pass it to tcp send func
+    const otherClient = this.otherClients[username];
+    const { ip, session } = otherClient;
 
+    if (session.joinable) {
+      const joinPrivateSessionMessage = this.createMessage(MessageType.joinSession, joinRequest);
+      this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinPrivateSessionMessage);
+    } else {
+      // TODO: if not --> display to user
+    }
   }
-
-  public leaveSession(username: string) {
-    // TODO: Implement this function
-    sessionParameters= [username,""];
-
-    this.session = {
-      isPublic: false,
-      joinable: false
-    };
-
-    const leaveSessionMessage = this.createMessage(MessageType.leaveSession, sessionParameters);
-    this.sendDataTCP("", 12345, leaveSessionMessage);
-
-
-    const statusUpdateMessage = this.createMessage(MessageType.status );
-    this.sendUDPBroadcast(12345, statusUpdateMessage);
-
-  }
-
 
   // IF public session --> key is "" so this parameter will always
   // be used except its a private session
   // this handles the sessin join request of a other user
-  public handleSessionJoin(key : string) {
-    // TODO: Implement this function
-    if (this.key === key && this.session.joinable === true){
-      this.session.joinable = false;}
-   
-      const statusUpdateMessage = this.createMessage(MessageType.status, );
+  public handleSessionJoin(key: string | undefined, ip: string, username: string) {
+    if (!this.session.joinable) {
+      this.respondToJoinSessionRequest(ip, false, "Rejected: Session is not joinable");
+      return;
+    }
+    if (key) {
+      if (key === this.key) {
+        this.startSession(username);
+        this.respondToJoinSessionRequest(ip, true);
+      } else {
+        this.respondToJoinSessionRequest(ip, false, "Rejected: Session Key is incorrect");
+      }
+    } else {
+      this.startSession(username);
 
-    const responseSessionMessage = this.createMessage(MessageType.leaveSession, "success");
-    this.sendDataTCP("", 12345, responseSessionMessage);
-
+      this.respondToJoinSessionRequest(ip, true);
+    }
   }
 
+  public respondToJoinSessionRequest(ip: string, accept: boolean, message?: string) {
+    const joinSessionRespone: JoinSessionRespone = { accept, message };
+    const joinSessionResponseMessage = this.createMessage(
+      MessageType.responseSession,
+      joinSessionRespone
+    );
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinSessionResponseMessage);
+  }
+
+  public startSession(username: string) {
+    this.session.joinable = false;
+    this.joinedSession = username;
+    this.sendStatus();
+
+
+
+    //TODO start making file exchange ... and text exchanges
+  }
 
   // handles the response of a session join request --> if payload succes --> session is joined
-  public handleResponseSessionJoin(message: Message) {
-
-    // TODO: Implement this function
-    if (message.payload === "success"){
-      message.session.joinable = false;
-      this.session = message.session;
-      const statusUpdateMessage = this.createMessage(MessageType.status);
-      this.sendUDPBroadcast(12345,statusUpdateMessage);
-        }
+  public handleJoinSessionResponse(payload: JoinSessionRespone, username: string) {
+    if (payload.accept) {
+      this.joinedSession = username;
+    } else {
+      // TODO: show User message of rejection payload.message
+    }
   }
 
-  public endSession() {
-    // TODO: Implement this function
-    sessionParameters= [this.username,""];
-    this.session = {
-      isPublic: false,
-      joinable: false
-    };
-    const closeSessionMessage = this.createMessage(MessageType.leaveSession, sessionParameters);
-    this.sendDataTCP("", 12345, closeSessionMessage);
+  public leaveSession() {
+    if (!this.joinedSession) {
+      //TODO: Let user know theres in no session to leave
+      return;
+    }
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
 
+    const leaveSessionMessage = this.createMessage(MessageType.leaveSession);
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, leaveSessionMessage);
+  }
+  public handleLeaveSessionMessage(username: string) {
+    if (this.joinedSession === username) {
+      this.joinedSession = "";
+      this.session.joinable = true;
+      this.sendStatus();
+    }
+  }
+
+  public handleCloseSessionMessage(username: string) {
+    if (this.joinedSession === username) {
+      this.joinedSession = "";
+      //TODO: stopp text exchange
+    }
+  }
+  public closeSession() {
+    if (!this.joinedSession) {
+      //TODO: Let user know theres in no session to end
+      return;
+    }
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
+
+    const closeSessionMessage = this.createMessage(MessageType.closeSession);
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, closeSessionMessage);
+
+    this.joinedSession = "";
+    this.session.joinable = false;
+    this.session.isPublic = false;
+    this.sendStatus();
   }
 
   public sendTextChanges() {
