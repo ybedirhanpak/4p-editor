@@ -55,8 +55,8 @@
     Object.keys(clientsMap).forEach((username) => {
       const client = clientsMap[username];
       const { ip, session } = client;
-      const { public, joinable } = session;
-      console.log(ip, session, public, joinable);
+      const { isPublic, joinable } = session;
+      console.log(ip, session, isPublic, joinable);
 
       const listItem = document.createElement("li");
       listItem.style.display = "flex";
@@ -66,7 +66,7 @@
       usernameSpan.innerHTML = username;
       listItem.appendChild(usernameSpan);
 
-      if (public && joinable) {
+      if (isPublic && joinable) {
         const joinAnchor = document.createElement("a");
         joinAnchor.innerHTML = "Join";
         joinAnchor.style.cursor = "pointer";

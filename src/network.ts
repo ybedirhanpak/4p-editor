@@ -179,6 +179,9 @@ export class Client {
         // Add user into client dictionary
         this.saveClient(username, ip, session);
         break;
+      case MessageType.status:
+        this.saveClient(username, ip, session);
+        break;
       case MessageType.joinSession:
         const { key } = payload;
         this.handleSessionJoin(key, ip, username);
@@ -343,6 +346,8 @@ export class Client {
     const leaveSessionMessage = this.createMessage(MessageType.leaveSession);
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, leaveSessionMessage);
   }
+
+  public handleStatusReceive(username: string, session: Session) {}
 
   public handleLeaveSessionMessage(username: string) {
     if (this.joinedSession === username) {
