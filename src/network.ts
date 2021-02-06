@@ -8,21 +8,23 @@ const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
 const DISCOVERY_BULK = 3;
 const STATUS_BULK = 3;
-const DISCOVERY_INTERVAL = 60 * 1000;
-var sessionParameters: [string, string];
+const DISCOVERY_INTERVAL = 60 * 1000; // 60 seconds
 
 export interface ClientStatus {
   username: string;
   ip: string;
   session: Session;
 }
+
 export interface JoinPrivateRequest {
   key: string;
 }
+
 export interface JoinSessionRespone {
   accept: boolean;
   message?: string;
 }
+
 export class Client {
   public username = "";
   public session: Session = {
@@ -207,7 +209,7 @@ export class Client {
   }
 
   private sendStatus() {
-    for (let i = 0; i < DISCOVERY_BULK; i++) {
+    for (let i = 0; i < STATUS_BULK; i++) {
       const statusUpdateMessage = this.createMessage(MessageType.status);
       this.sendUDPBroadcast(DEFAULT_UDP_PORT, statusUpdateMessage);
     }
@@ -248,6 +250,7 @@ export class Client {
 
     return this.session;
   }
+
   public joinPublicSession(username: string) {
     const otherClient = this.otherClients[username];
     const { ip, session } = otherClient;
@@ -261,7 +264,6 @@ export class Client {
   }
 
   public joinPrivateSession(username: string, key: string) {
-    sessionParameters = [username, key];
     const joinRequest: JoinPrivateRequest = { key };
 
     // get ip from otherclients array and pass it to tcp send func
@@ -335,6 +337,7 @@ export class Client {
     const leaveSessionMessage = this.createMessage(MessageType.leaveSession);
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, leaveSessionMessage);
   }
+
   public handleLeaveSessionMessage(username: string) {
     if (this.joinedSession === username) {
       this.joinedSession = "";
@@ -349,6 +352,7 @@ export class Client {
       //TODO: stopp text exchange
     }
   }
+
   public closeSession() {
     if (!this.joinedSession) {
       //TODO: Let user know theres in no session to end
