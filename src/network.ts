@@ -3,7 +3,7 @@ import * as dgram from "dgram";
 import { UIData } from "./ui/SidebarProvider";
 import { Session, Message, MessageType } from "./message";
 
-const BROADCAST_ADDRESS = "172.25.255.255";
+const BROADCAST_ADDRESS = "25.255.255.255";
 const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
 const DISCOVERY_BULK = 3;
