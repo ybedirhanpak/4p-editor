@@ -325,6 +325,7 @@ export class Client {
     this.joinedSession = username;
     this.sendStatus();
 
+    this.notifyUIProvider({ type: "sessionStarted", payload: { username } });
     //TODO start making file exchange ... and text exchanges
   }
 
@@ -332,6 +333,7 @@ export class Client {
   public handleJoinSessionResponse(payload: JoinSessionRespone, username: string) {
     if (payload.accept) {
       this.joinedSession = username;
+      this.notifyUIProvider({ type: "joinAccepted", payload: { username } });
     } else {
       // TODO: show User message of rejection payload.message
     }

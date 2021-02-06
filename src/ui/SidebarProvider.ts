@@ -55,7 +55,26 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           }
           const { username } = data.payload;
           this.client.joinPublicSession(username);
-          vscode.window.showInformationMessage(`Join session of ${username}`);
+          vscode.window.showInformationMessage(`Join public session of ${username}`);
+          break;
+        }
+        case "joinPrivateSession": {
+          if (!data.payload) {
+            return;
+          }
+          const { username, key } = data.payload;
+          this.client.joinPrivateSession(username, key);
+          vscode.window.showInformationMessage(`Join private session of ${username}`);
+          break;
+        }
+        case "closeSession": {
+          this.client.closeSession();
+          vscode.window.showInformationMessage(`Close Session`);
+          break;
+        }
+        case "leaveSession": {
+          this.client.leaveSession();
+          vscode.window.showInformationMessage(`Leave Session`);
           break;
         }
         case "onInfo": {
@@ -115,24 +134,49 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         <link href="${sidebarUri}" rel="stylesheet">
       </head>
       <body>
-        <div id="welcome-wrapper">
-          <h3 id="welcome"></h3>
-          <div id="create-session-wrapper">
-            <input type="checkbox" id="public-session" name="public-session">
-            <label for="public-session">Is public?</label><br>
-            <button id="create-session">Create Session</button>
-          </div>
-          <h4 id="session-key"></h4>
-        </div>
+      
         <div id="login-wrapper">
           <h3>Login</h3>
           <input id="login-input" type="text"/>
           <button id="login-button">Login</button>
         </div>
-        <br/>
-        <h3>Other clients:</h3>
-        <ul id="other-clients-list">
-        </ul>
+
+        <div id="welcome-wrapper">
+          <h3 id="welcome"></h3>
+
+          <br/>
+          <div id="create-session-wrapper">
+            <input type="checkbox" id="create-is-public" name="create-is-public">
+            <label for="create-is-public">Is public?</label><br>
+            <button id="create-session">Create Session</button>
+          </div>
+
+          <br/>
+          <div id="join-private-wrapper">
+            <input type="text" id="join-private-username" name="join-private-username" placeholder="Username">
+            <input type="text" id="join-private-key" name="join-private-key" placeholder="Key">
+            <button id="join-private-button">Join Private Session</button>
+          </div>
+
+          <br/>
+          <div id="owned-session-wrapper">
+            <h3 id="owned-session-key"></h3>
+            <h4 id="owned-session-client"></h4>
+            <button id="owned-session-close-button">Close Session</button>
+          </div>
+
+          <br/>
+          <div id="joined-session-wrapper">
+            <h4 id="joined-session-client"></h4>
+            <button id="joined-session-leave-button">Leave Session</button>
+          </div>
+
+          <div id="other-clients-wrapper">
+            <h3>Other clients:</h3>
+            <ul id="other-clients-list">
+            </ul>
+          </div>
+        </div>
         <script nonce="${nonce}" src="${scriptUri}">
         </script>
       </body>

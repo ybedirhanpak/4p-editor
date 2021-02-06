@@ -3,21 +3,49 @@
 
 (function () {
   const vscode = acquireVsCodeApi();
-  const welcomeWrapper = document.getElementById("welcome-wrapper");
-  const welcome = document.getElementById("welcome");
+
+  // Login
   const loginWrapper = document.getElementById("login-wrapper");
   const loginInput = document.getElementById("login-input");
   const loginButton = document.getElementById("login-button");
-  const otherClientsList = document.getElementById("other-clients-list");
-  const publicSession = document.getElementById("public-session");
+  // Welcome
+  const welcomeWrapper = document.getElementById("welcome-wrapper");
+  const welcome = document.getElementById("welcome");
+  // Create Session
   const createSessionWrapper = document.getElementById("create-session-wrapper");
   const createSessionButton = document.getElementById("create-session");
-  const sessionKey = document.getElementById("session-key");
+  const createIsPublic = document.getElementById("create-is-public");
+  // Join Private Session
+  const joinPrivateWrapper = document.getElementById("join-private-wrapper");
+  const joinPrivateUsername = document.getElementById("join-private-username");
+  const joinPrivateKey = document.getElementById("join-private-key");
+  const joinPrivateButton = document.getElementById("join-private-button");
+  // Owned Session
+  const ownedSessionWrapper = document.getElementById("owned-session-wrapper");
+  const ownedSessionKey = document.getElementById("owned-session-key");
+  const ownedSessionClient = document.getElementById("owned-session-client");
+  const ownedSessionCloseButton = document.getElementById("owned-session-close-button");
+  // Joined Session
+  const joinedSessionWrapper = document.getElementById("joined-session-wrapper");
+  const joinedSessionClient = document.getElementById("joined-session-client");
+  const joinedSessionLeaveButton = document.getElementById("joined-session-leave-button");
+  // Other Clients
+  const otherClientsWrapper = document.getElementById("other-clients-wrapper");
+  const otherClientsList = document.getElementById("other-clients-list");
 
   // Initial setup
-  welcomeWrapper.style.display = "none";
   loginWrapper.style.display = "block";
-  sessionKey.style.display = "none";
+  welcomeWrapper.style.display = "none";
+
+  createSessionWrapper.style.display = "block";
+  joinPrivateWrapper.style.display = "block";
+  joinPrivateWrapper.style.display = "block";
+  otherClientsWrapper.style.display = "block";
+
+  ownedSessionWrapper.style.display = "none";
+  joinedSessionWrapper.style.display = "none";
+
+  // Button Event Listeners
 
   loginButton.addEventListener("click", (event) => {
     event.preventDefault();
@@ -32,7 +60,7 @@
 
   createSessionButton.addEventListener("click", (event) => {
     event.preventDefault();
-    const isPublic = publicSession.checked;
+    const isPublic = createIsPublic.checked;
 
     vscode.postMessage({
       type: "createSession",
@@ -41,6 +69,35 @@
       },
     });
   });
+
+  joinPrivateButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    const usernameInput = joinPrivateUsername.value;
+    const keyInput = joinPrivateKey.value;
+    vscode.postMessage({
+      type: "joinPrivateSession",
+      payload: {
+        key: keyInput,
+        username: usernameInput,
+      },
+    });
+  });
+
+  ownedSessionCloseButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    vscode.postMessage({
+      type: "closeSession",
+    });
+  });
+
+  joinedSessionLeaveButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    vscode.postMessage({
+      type: "leaveSession",
+    });
+  });
+
+  // Functions
 
   const onSuccessfulLogin = (username) => {
     loginWrapper.style.display = "none";
@@ -90,9 +147,22 @@
   };
 
   const onSessionCreated = (key) => {
-    sessionKey.style.display = "block";
-    sessionKey.innerHTML = `Your session key: ${key}`;
     createSessionWrapper.style.display = "none";
+    ownedSessionWrapper.style.display = "block";
+    ownedSessionKey.innerHTML = `Your session key: ${key}`;
+  };
+
+  const onSessionStarted = (payload) => {
+    const { username } = payload;
+    ownedSessionClient.innerHTML = `Connected with: ${username}`;
+  };
+
+  const onJoinAccepted = (payload) => {
+    const { username } = payload;
+    createSessionWrapper.style.display = "none";
+    joinPrivateWrapper.style.display = "none";
+    joinedSessionWrapper.style.display = "block";
+    joinedSessionClient.innerHTML = `Connected with: ${username}`;
   };
 
   // Handle messages sent from the extension to the webview
@@ -108,6 +178,12 @@
         break;
       case "sessionCreated":
         onSessionCreated(payload);
+        break;
+      case "joinAccepted":
+        onJoinAccepted(payload);
+        break;
+      case "sessionStarted":
+        onSessionStarted(payload);
         break;
     }
   });
