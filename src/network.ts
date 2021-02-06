@@ -120,7 +120,7 @@ export class Client {
     });
 
     const dataString = JSON.stringify(data);
-    client.send(dataString, 0, dataString.length, port, "192.168.1.255", (error) => {
+    client.send(dataString, 0, dataString.length, port, "25.255.255.255", (error) => {
       if (error) {
         console.log("Client got an error while sending message:", error);
       }
@@ -206,7 +206,6 @@ export class Client {
   }
 
   private sendStatus() {
-    
     for (let i = 0; i < DISCOVERY_BULK; i++) {
       const statusUpdateMessage = this.createMessage(MessageType.status);
       this.sendUDPBroadcast(DEFAULT_UDP_PORT, statusUpdateMessage);
@@ -311,8 +310,6 @@ export class Client {
     this.session.joinable = false;
     this.joinedSession = username;
     this.sendStatus();
-
-
 
     //TODO start making file exchange ... and text exchanges
   }
