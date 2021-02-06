@@ -92,14 +92,14 @@ export class SamplePanel {
 
     webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
-        case "onInfo": {
+        case "showInfoMessage": {
           if (!data.value) {
             return;
           }
           vscode.window.showInformationMessage(data.value);
           break;
         }
-        case "onError": {
+        case "showErrorMessage": {
           if (!data.value) {
             return;
           }

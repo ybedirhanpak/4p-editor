@@ -1,3 +1,85 @@
 body {
-    background: #252526;
+  background: #252526;
+}
+
+section {
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.mb-1 {
+  margin-bottom: 8px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
+
+.mt-1 {
+  margin-top: 8px;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.ml-1 {
+  margin-left: 8px;
+}
+
+.ml-2 {
+  margin-left: 16px;
+}
+
+.mr-1 {
+  margin-right: 8px;
+}
+
+.mr-2 {
+  margin-right: 16px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex.sb {
+  justify-content: space-between;
+}
+
+.client-list {
+  padding-left: 0px;
+}
+
+.client-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.client-list li:first-child {
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.client-list li span {
+  font-size: 1.2rem;
+}
+
+.client-list li a {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.bold {
+    font-weight: 600;
 }

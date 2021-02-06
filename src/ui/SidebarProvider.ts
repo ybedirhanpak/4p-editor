@@ -15,6 +15,27 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   public onClientMessage(data: UIData) {
     this._view?.webview.postMessage(data);
+    switch (data.type) {
+      case "showErrorMessage": {
+        if (!data.payload) {
+          return;
+        }
+        const { message } = data.payload;
+        vscode.window.showErrorMessage(message);
+        break;
+      }
+      case "showInfoMessage": {
+        if (!data.payload) {
+          return;
+        }
+        const { message } = data.payload;
+        vscode.window.showInformationMessage(message);
+        break;
+      }
+      default: {
+        break;
+      }
+    }
   }
 
   public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -77,18 +98,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.window.showInformationMessage(`Leave Session`);
           break;
         }
-        case "onInfo": {
+        case "showInfoMessage": {
           if (!data.payload) {
             return;
           }
           vscode.window.showInformationMessage(data.payload);
           break;
         }
-        case "onError": {
+        case "showErrorMessage": {
           if (!data.payload) {
             return;
           }
           vscode.window.showErrorMessage(data.payload);
+          break;
+        }
+        default: {
           break;
         }
       }
@@ -134,48 +158,45 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         <link href="${sidebarUri}" rel="stylesheet">
       </head>
       <body>
-      
         <div id="login-wrapper">
-          <h3>Login</h3>
-          <input id="login-input" type="text"/>
+          <h2 class="mb-1">Login</h2>
+          <input id="login-input" class="mb-1" type="text" />
           <button id="login-button">Login</button>
         </div>
 
         <div id="welcome-wrapper">
-          <h3 id="welcome"></h3>
+          <h2 id="welcome" class="mb-2 text-center bold"></h2>
 
-          <br/>
-          <div id="create-session-wrapper">
-            <input type="checkbox" id="create-is-public" name="create-is-public">
-            <label for="create-is-public">Is public?</label><br>
-            <button id="create-session">Create Session</button>
-          </div>
+          <section id="create-session-wrapper" class="section flex">
+            <button id="create-public-session" class="mr-1 flex-1">Create Public Session</button>
+            <button id="create-private-session" class="flex-1">Create Private Session</button>
+          </section>
 
-          <br/>
-          <div id="join-private-wrapper">
-            <input type="text" id="join-private-username" name="join-private-username" placeholder="Username">
-            <input type="text" id="join-private-key" name="join-private-key" placeholder="Key">
+          <section id="join-private-wrapper" class="section">
+            <input id="join-private-username" class="mb-1" type="text" name="join-private-username" placeholder="Username">
+            <input id="join-private-key" class="mb-1" type="text" name="join-private-key" placeholder="Key">
             <button id="join-private-button">Join Private Session</button>
-          </div>
+          </section>
 
-          <br/>
-          <div id="owned-session-wrapper">
-            <h3 id="owned-session-key"></h3>
-            <h4 id="owned-session-client"></h4>
-            <button id="owned-session-close-button">Close Session</button>
-          </div>
+          <section id="owned-session-wrapper" class="section">
+            <h3 class="mb-2 text-center bold">Current Session</h3>
+            <h3 id="owned-session-key" class="mb-1"></h3>
+            <h3 id="owned-session-public" class="mb-1"></h3>
+            <h3 id="owned-session-client" class="mb-1"></h3>
+            <button id="owned-session-close-button" class="mt-1">Close Session</button>
+          </section>
 
-          <br/>
-          <div id="joined-session-wrapper">
-            <h4 id="joined-session-client"></h4>
-            <button id="joined-session-leave-button">Leave Session</button>
-          </div>
+          <section id="joined-session-wrapper" class="section">
+            <h3 class="mb-2 text-center bold">Current Session</h3>
+            <h4 id="joined-session-client" class="mb-1"></h4>
+            <button id="joined-session-leave-button" class="mt-1">Leave Session</button>
+          </section>
 
-          <div id="other-clients-wrapper">
-            <h3>Other clients:</h3>
-            <ul id="other-clients-list">
+          <section id="other-clients-wrapper" class="section">
+            <h3 class="mb-2 text-center bold">Other clients</h3>
+            <ul id="other-clients-list" class="client-list">
             </ul>
-          </div>
+          </section>
         </div>
         <script nonce="${nonce}" src="${scriptUri}">
         </script>

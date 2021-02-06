@@ -174,7 +174,6 @@ export class Client {
 
   private handleReceivedMessage(message: Message, ip: string) {
     console.log("Message received", message);
-    // TODO: Implement this function
     const { username, type, session, payload } = message;
 
     switch (type) {
@@ -255,7 +254,7 @@ export class Client {
     const key = Math.random().toString(36).substring(7);
     this.key = key;
 
-    this.notifyUIProvider({ type: "sessionCreated", payload: key });
+    this.notifyUIProvider({ type: "sessionCreated", payload: { key, isPublic } });
     return key;
   }
 
@@ -267,7 +266,9 @@ export class Client {
       const joinPublicSessionMessage = this.createMessage(MessageType.joinSession);
       this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinPublicSessionMessage);
     } else {
-      // TODO: if not --> display to user
+      // Let user know that the session is not joinable
+      const message = "You cannot join this session.";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
     }
   }
 
@@ -282,7 +283,9 @@ export class Client {
       const joinPrivateSessionMessage = this.createMessage(MessageType.joinSession, joinRequest);
       this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinPrivateSessionMessage);
     } else {
-      // TODO: if not --> display to user
+      // Let user know that the session is not joinable
+      const message = "You cannot join this session.";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
     }
   }
 
@@ -308,7 +311,6 @@ export class Client {
       this.startSession(username);
       this.respondToJoinSessionRequest(ip, true);
     }
-
   }
 
   public respondToJoinSessionRequest(ip: string, accept: boolean, message?: string) {
@@ -331,17 +333,21 @@ export class Client {
 
   // handles the response of a session join request --> if payload succes --> session is joined
   public handleJoinSessionResponse(payload: JoinSessionRespone, username: string) {
-    if (payload.accept) {
+    const { accept, message } = payload;
+    if (accept) {
       this.joinedSession = username;
       this.notifyUIProvider({ type: "joinAccepted", payload: { username } });
     } else {
-      // TODO: show User message of rejection payload.message
+      // Show user reject message
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
     }
   }
 
   public leaveSession() {
     if (!this.joinedSession) {
-      //TODO: Let user know theres in no session to leave
+      // Let user know theres in no session to leave
+      const message = "You cannot leave because you are not in a session";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
       return;
     }
     const otherClient = this.otherClients[this.joinedSession];
@@ -350,8 +356,6 @@ export class Client {
     const leaveSessionMessage = this.createMessage(MessageType.leaveSession);
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, leaveSessionMessage);
   }
-
-  public handleStatusReceive(username: string, session: Session) {}
 
   public handleLeaveSessionMessage(username: string) {
     if (this.joinedSession === username) {
@@ -369,8 +373,10 @@ export class Client {
   }
 
   public closeSession() {
-    if (!this.joinedSession) {
-      //TODO: Let user know theres in no session to end
+    if (!this.session.joinable) {
+      // Let user know theres in no session to end
+      const message = "You cannot close session because you haven't created one.";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
       return;
     }
     const otherClient = this.otherClients[this.joinedSession];
