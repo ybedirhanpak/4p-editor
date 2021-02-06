@@ -5,6 +5,7 @@ export interface Session {
 
 export enum MessageType {
   discover = "discover",
+  discoverResponse = "discoverResponse",
   goodbye = "goodbye",
   status = "status",
   document = "document",
