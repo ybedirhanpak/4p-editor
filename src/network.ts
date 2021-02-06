@@ -242,17 +242,19 @@ export class Client {
     this.sendGoodbye();
   }
 
-  public createSession(isPublic: boolean): Session {
-    const key = Math.random().toString(36).substring(7);
+  public createSession(isPublic: boolean): string {
     this.session = {
       isPublic: isPublic,
       joinable: true,
     };
-    this.key = key;
 
     this.sendStatus();
 
-    return this.session;
+    const key = Math.random().toString(36).substring(7);
+    this.key = key;
+
+    this.notifyUIProvider({ type: "sessionCreated", payload: key });
+    return key;
   }
 
   public joinPublicSession(username: string) {

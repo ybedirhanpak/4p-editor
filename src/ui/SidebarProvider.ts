@@ -40,6 +40,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.window.showInformationMessage(`${username} logged in!`);
           break;
         }
+        case "createSession": {
+          if (!data.payload) {
+            return;
+          }
+          const { isPublic } = data.payload;
+          this.client.createSession(isPublic);
+          vscode.window.showInformationMessage(`Session created!`);
+          break;
+        }
         case "joinPublicSession": {
           if (!data.payload) {
             return;
@@ -108,6 +117,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       <body>
         <div id="welcome-wrapper">
           <h3 id="welcome"></h3>
+          <div id="create-session-wrapper">
+            <input type="checkbox" id="public-session" name="public-session">
+            <label for="public-session">Is public?</label><br>
+            <button id="create-session">Create Session</button>
+          </div>
+          <h4 id="session-key"></h4>
         </div>
         <div id="login-wrapper">
           <h3>Login</h3>

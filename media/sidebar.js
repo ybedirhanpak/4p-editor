@@ -9,10 +9,15 @@
   const loginInput = document.getElementById("login-input");
   const loginButton = document.getElementById("login-button");
   const otherClientsList = document.getElementById("other-clients-list");
+  const publicSession = document.getElementById("public-session");
+  const createSessionWrapper = document.getElementById("create-session-wrapper");
+  const createSessionButton = document.getElementById("create-session");
+  const sessionKey = document.getElementById("session-key");
 
   // Initial setup
   welcomeWrapper.style.display = "none";
   loginWrapper.style.display = "block";
+  sessionKey.style.display = "none";
 
   loginButton.addEventListener("click", (event) => {
     event.preventDefault();
@@ -21,6 +26,18 @@
       type: "login",
       payload: {
         username: usernameInput,
+      },
+    });
+  });
+
+  createSessionButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    const isPublic = publicSession.checked;
+
+    vscode.postMessage({
+      type: "createSession",
+      payload: {
+        isPublic,
       },
     });
   });
@@ -72,6 +89,12 @@
     });
   };
 
+  const onSessionCreated = (key) => {
+    sessionKey.style.display = "block";
+    sessionKey.innerHTML = `Your session key: ${key}`;
+    createSessionWrapper.style.display = "none";
+  };
+
   // Handle messages sent from the extension to the webview
   window.addEventListener("message", async (event) => {
     console.log("Message received", event);
@@ -82,6 +105,9 @@
         break;
       case "updateOtherClients":
         updateOtherClients(payload);
+        break;
+      case "sessionCreated":
+        onSessionCreated(payload);
         break;
     }
   });
