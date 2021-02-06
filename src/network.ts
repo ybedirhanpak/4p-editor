@@ -156,6 +156,9 @@ export class Client {
       case MessageType.discover:
         // Add user into client dictionary
         this.saveClient(username, ip, session);
+        // Send respond to client
+        const responseMessage = this.createMessage(MessageType.discoverResponse);
+        this.sendDataTCP(ip, DEFAULT_TCP_PORT, responseMessage);
         break;
       case MessageType.goodbye:
         // Remove user from client dictionary
@@ -172,19 +175,19 @@ export class Client {
     const { username, type, session, payload } = message;
 
     switch (type) {
-      case MessageType.joinSession:
+      case MessageType.discoverResponse:
         // Add user into client dictionary
+        this.saveClient(username, ip, session);
+        break;
+      case MessageType.joinSession:
         const { key } = payload;
         this.handleSessionJoin(key, ip, username);
-
         break;
       case MessageType.responseSession:
         this.handleJoinSessionResponse(payload, username);
-        // Remove user from client dictionary
         break;
       case MessageType.leaveSession:
         this.handleLeaveSessionMessage(username);
-        // Remove user from client dictionary
         break;
       case MessageType.closeSession:
         this.handleCloseSessionMessage(username);
@@ -228,6 +231,7 @@ export class Client {
     this.username = username;
     this.notifyUIProvider({ type: "successfulLogin", payload: username });
     this.listenUDP(DEFAULT_UDP_PORT);
+    this.listenTCP(DEFAULT_TCP_PORT);
     this.sendDiscovery();
   }
 
