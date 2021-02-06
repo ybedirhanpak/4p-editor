@@ -70,10 +70,18 @@
     welcome.innerHTML = `Welcome ${username}!`;
   };
 
-  const updateOtherClients = (clientsMap) => {
+  const updateOtherClients = (payload) => {
+    const { clientsMap, hasSession } = payload;
     console.log("Update other clients", clientsMap);
     otherClientsList.innerHTML = "";
 
+    const usernameList = Object.keys(clientsMap);
+
+    if(usernameList.length === 0) {
+      otherClientsList.innerHTML = '<span>There are no online users.<span>';
+      return;
+    } 
+    
     Object.keys(clientsMap).forEach((username) => {
       const client = clientsMap[username];
       const { ip, session } = client;
@@ -86,7 +94,7 @@
       usernameSpan.innerHTML = username;
       listItem.appendChild(usernameSpan);
 
-      if (isPublic && joinable) {
+      if (!hasSession && isPublic && joinable) {
         const joinAnchor = document.createElement("a");
         joinAnchor.innerHTML = "Join";
 
@@ -106,6 +114,7 @@
 
       otherClientsList.appendChild(listItem);
     });
+
   };
 
   const onSessionCreated = (payload) => {

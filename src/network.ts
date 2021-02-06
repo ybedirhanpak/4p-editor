@@ -47,6 +47,16 @@ export class Client {
     this.uiProvider?.onClientMessage(data);
   }
 
+  private updateOtherClients() {
+    this.notifyUIProvider({
+      type: "updateOtherClients",
+      payload: {
+        clientsMap: this.otherClients,
+        hasSession: this.joinedSession || this.session.joinable,
+      },
+    });
+  }
+
   public listenTCP(port = DEFAULT_TCP_PORT) {
     const server = net.createServer();
 
@@ -142,7 +152,7 @@ export class Client {
 
   private saveClient(username: string, ip: string, session: Session) {
     this.otherClients[username] = { username, ip, session };
-    this.notifyUIProvider({ type: "updateOtherClients", payload: this.otherClients });
+    this.updateOtherClients();
   }
 
   private removeClient(username: string) {
@@ -231,6 +241,7 @@ export class Client {
     console.log("Client log in with", username);
     this.username = username;
     this.notifyUIProvider({ type: "successfulLogin", payload: username });
+    this.updateOtherClients();
     this.listenUDP(DEFAULT_UDP_PORT);
     this.listenTCP(DEFAULT_TCP_PORT);
     this.sendDiscovery();
