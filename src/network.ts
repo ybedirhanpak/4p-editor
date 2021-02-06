@@ -51,16 +51,16 @@ export class Client {
     const server = net.createServer();
 
     server.listen(port, () => {
-      console.log("Listening on :", server.address());
+      console.log("TCP Listening on :", server.address());
     });
 
     server.on("connection", (conn) => {
-      console.log("Connection from", conn.remoteAddress + ":" + conn.remotePort);
+      console.log("TCP Connection from", conn.remoteAddress + ":" + conn.remotePort);
       conn.on("data", (data) => {
         if (conn.remoteAddress) {
           this.handleReceivedMessage(JSON.parse(data.toString()), conn.remoteAddress);
         } else {
-          console.log("Address couldn't be found", conn.remoteAddress + ":" + conn.remotePort);
+          console.log("TCP Address couldn't be found", conn.remoteAddress + ":" + conn.remotePort);
         }
       });
     });
@@ -82,22 +82,22 @@ export class Client {
       const address = server.address();
       const port = address.port;
       const ip = address.address;
-      console.log(`Server is listening at: ${ip}:${port}`);
+      console.log(`UDP Server is listening at: ${ip}:${port}`);
     });
 
     server.on("message", (message, remoteInfo) => {
-      console.log("Server received:", message.toString());
-      console.log("Remote info:", remoteInfo);
+      console.log("UDP Server received:", message.toString());
+      console.log("UDP Remote info:", remoteInfo);
       this.handleBroadcastMessage(JSON.parse(message.toString()), remoteInfo.address);
     });
 
     server.on("error", (error) => {
-      console.log("Error:", error);
+      console.log("UDP Error:", error);
       server.close();
     });
 
     server.on("close", () => {
-      console.log("Server is closed.");
+      console.log("UDP Server is closed.");
     });
 
     server.bind(port);
