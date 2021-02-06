@@ -183,8 +183,7 @@ export class Client {
         this.saveClient(username, ip, session);
         break;
       case MessageType.joinSession:
-        const { key } = payload;
-        this.handleSessionJoin(key, ip, username);
+        this.handleSessionJoin(payload?.key, ip, username);
         break;
       case MessageType.responseSession:
         this.handleJoinSessionResponse(payload, username);
@@ -295,7 +294,9 @@ export class Client {
       this.respondToJoinSessionRequest(ip, false, "Rejected: Session is not joinable");
       return;
     }
+
     if (key) {
+      // Private session
       if (key === this.key) {
         this.startSession(username);
         this.respondToJoinSessionRequest(ip, true);
@@ -303,10 +304,11 @@ export class Client {
         this.respondToJoinSessionRequest(ip, false, "Rejected: Session Key is incorrect");
       }
     } else {
+      // Public session
       this.startSession(username);
-
       this.respondToJoinSessionRequest(ip, true);
     }
+
   }
 
   public respondToJoinSessionRequest(ip: string, accept: boolean, message?: string) {
