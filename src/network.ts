@@ -8,7 +8,7 @@ const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
 const DISCOVERY_BULK = 3;
 const STATUS_BULK = 3;
-const DISCOVERY_INTERVAL = 60 * 1000; // 60 seconds
+const DISCOVERY_INTERVAL = 60000 * 1000; // 60 seconds
 
 export interface ClientStatus {
   username: string;
@@ -160,6 +160,9 @@ export class Client {
         const responseMessage = this.createMessage(MessageType.discoverResponse);
         this.sendDataTCP(ip, DEFAULT_TCP_PORT, responseMessage);
         break;
+      case MessageType.status:
+        this.saveClient(username, ip, session);
+        break;
       case MessageType.goodbye:
         // Remove user from client dictionary
         this.removeClient(username);
@@ -177,9 +180,6 @@ export class Client {
     switch (type) {
       case MessageType.discoverResponse:
         // Add user into client dictionary
-        this.saveClient(username, ip, session);
-        break;
-      case MessageType.status:
         this.saveClient(username, ip, session);
         break;
       case MessageType.joinSession:
