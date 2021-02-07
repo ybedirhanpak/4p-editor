@@ -1,7 +1,9 @@
 import * as net from "net";
 import * as dgram from "dgram";
 import { UIData } from "./ui/SidebarProvider";
+
 import { Session, Message, MessageType } from "./message";
+import * as vscode from "vscode";
 
 const BROADCAST_ADDRESS = "25.255.255.255";
 const DEFAULT_TCP_PORT = 12345;
@@ -203,6 +205,9 @@ export class Client {
       case MessageType.closeSession:
         this.handleCloseSessionMessage(username);
         break;
+        case MessageType.document:
+        this.receivingFile(payload);
+        break;
       default:
         break;
     }
@@ -337,7 +342,7 @@ export class Client {
     this.session.joinable = false;
     this.joinedSession = username;
     this.sendStatus();
-
+    this.sendFile();
     this.notifyUIProvider({ type: "sessionStarted", payload: { username } });
     //TODO start making file exchange ... and text exchanges
   }
@@ -410,5 +415,33 @@ export class Client {
   public handleTextChanges() {
     // TODO: Define parameters
     // TODO: Implement this function
+  }
+
+  public sendFile() {
+
+    // NOT SURE HOW TO GET CONNECTION FROM extension.ts and network.ts 
+    // thats why i used this way --> needs to be changes again
+    let editor = vscode.window.activeTextEditor;
+    let document = editor?.document;
+    const documentMessage = this.createMessage(MessageType.document,document );
+
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
+
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, documentMessage);
+
+
+  }
+
+
+  public receivingFile(payload: vscode.TextDocument){
+
+    // open new doc in editor ....
+    // fill in document text and file name
+    this.notifyUIProvider({ type: "receiveFile", payload: { payload } });
+
+    
+
+
   }
 }

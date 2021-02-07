@@ -112,6 +112,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.window.showErrorMessage(data.payload);
           break;
         }
+        case "receiveFile":  {
+          this.initialySetFile(data.payload);
+        }
         default: {
           break;
         }
@@ -123,6 +126,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this._view = panel;
   }
 
+  public initialySetFile(payload: vscode.TextDocument) {
+    vscode.window.showTextDocument(payload);
+  }
   private _getHtmlForWebview(webview: vscode.Webview) {
     const styleVSCodeUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css")
