@@ -26,7 +26,10 @@ export interface JoinSessionRespone {
   accept: boolean;
   message?: string;
 }
-
+export interface InitFile {
+  document: vscode.TextDocument| undefined;
+  text: string | undefined;
+}
 export class Client {
   public username = "";
   public session: Session = {
@@ -423,7 +426,11 @@ export class Client {
     // thats why i used this way --> needs to be changes again
     let editor = vscode.window.activeTextEditor;
     let document = editor?.document;
-    const documentMessage = this.createMessage(MessageType.document,document );
+    let text = document?.getText();
+    const initFile: InitFile = { document, text};
+    console.log(text);
+    console.log(initFile.document?.getText);
+    const documentMessage = this.createMessage(MessageType.document,initFile );
 
     const otherClient = this.otherClients[this.joinedSession];
     const { ip } = otherClient;
@@ -434,14 +441,16 @@ export class Client {
   }
 
 
-  public receivingFile(payload: vscode.TextDocument){
+  public receivingFile(initFile: InitFile){
+    //vscode.window.showTextDocument(initFile.text.);
+    const text = initFile.text;
+    console.log(text);
+    console.log(initFile.document?.getText);
+
+    this.notifyUIProvider({ type: "showErrorMessage", payload: { text } });
 
     // open new doc in editor ....
     // fill in document text and file name
-    this.notifyUIProvider({ type: "receiveFile", payload: { payload } });
-
-    
-
-
+    //this.notifyUIProvider({ type: "receiveFile", payload: { payload } });
   }
 }
