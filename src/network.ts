@@ -468,16 +468,16 @@ export class Client {
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, textChangeMessage);
   }
 
-  public buildVSCodeRange(range: Position[]) {
+  public getVSRange(range: Position[], textLength: number = 0) {
     return new vscode.Range(
       new vscode.Position(range[0].line, range[0].character),
-      new vscode.Position(range[1].line, range[1].character)
+      new vscode.Position(range[1].line, range[1].character + textLength)
     );
   }
 
   public handleTextExchange(payload: TextExchangeReceive) {
     const { range, text, documentName } = payload;
-    const vsRange = this.buildVSCodeRange(range);
+
     // Get current editor
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -490,13 +490,13 @@ export class Client {
       return;
     }
 
-    const prevText = document.getText(vsRange);
+    const prevText = document.getText(this.getVSRange(range, text.length));
     if (prevText === text) {
       return;
     }
 
     editor.edit((editBuilder) => {
-      editBuilder.replace(vsRange, text);
+      editBuilder.replace(this.getVSRange(range), text);
     });
   }
 
