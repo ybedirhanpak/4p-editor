@@ -40,6 +40,17 @@ export interface TextExchange {
   text: string;
 }
 
+export interface TextExchangeReceive {
+  documentName: string;
+  range: Position[];
+  text: string;
+}
+
+export interface Position {
+  character: number;
+  line: number;
+}
+
 export class Client {
   public username = "";
   public session: Session = {
@@ -271,10 +282,9 @@ export class Client {
     this.sendDiscovery();
     const textChangeSub = vscode.workspace.onDidChangeTextDocument((event) => {
       if (this.joinedSession) {
-        event.contentChanges.forEach((change) =>{
-          this.sendTextChanges(event.document, change)
+        event.contentChanges.forEach((change) => {
+          this.sendTextChanges(event.document, change);
         });
-       
       }
     });
 
@@ -285,7 +295,6 @@ export class Client {
     });
     this.disposables.push(sub);
     this.disposables.push(textChangeSub);
-
   }
 
   public logout() {
@@ -443,8 +452,11 @@ export class Client {
     this.sendStatus();
   }
 
-  public sendTextChanges(document: vscode.TextDocument, change: vscode.TextDocumentContentChangeEvent) {
-    const {text, range} = change;
+  public sendTextChanges(
+    document: vscode.TextDocument,
+    change: vscode.TextDocumentContentChangeEvent
+  ) {
+    const { text, range } = change;
     const documentName = getRelativePath(document.fileName);
     const textChange: TextExchange = { range, text, documentName };
 
@@ -456,32 +468,16 @@ export class Client {
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, textChangeMessage);
   }
 
-  public handleTextExchange(payload: TextExchange) {
-  
-    const {range, text, documentName} = payload;
-  
-
+  public handleTextExchange(payload: TextExchangeReceive) {
+    const { range, text, documentName } = payload;
 
     vscode.window.activeTextEditor?.edit((editBuilder) => {
-
       const replaceRange = new vscode.Range(
-        range.start,
-        new vscode.Position(
-          range.end.line,
-          range.start.character + text.length
-        )
+        new vscode.Position(range[0].line, range[0].character),
+        new vscode.Position(range[1].line, range[1].character)
       );
-        
-        console.log("text ", text);
-        console.log("range ", range);
-        editBuilder.replace(replaceRange, text);
-      });
-
-    // vscode.window.activeTextEditor?.insertSnippet(
-    //   new vscode.SnippetString(payload.text),
-    //   payload.range
-    // );
-    
+      editBuilder.replace(replaceRange, text);
+    });
   }
 
   public sendCurrentEditorFile() {
@@ -541,5 +537,4 @@ export class Client {
       vscode.window.showTextDocument(document);
     });
   }
-   
 }
