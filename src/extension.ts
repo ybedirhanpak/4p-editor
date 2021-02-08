@@ -107,12 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
         editor.edit((editBuilder) => {
           // Detect changes in the editor and convert it to uppercase
           event.contentChanges.forEach((change) => {
-            const previousText = document?.getText(change.range);
 
-            // Don't go crazy with infinite change cycle
-            if (previousText === change.text) {
-              return;
-            }
 
             // I couldn't find a workaround with text with containing new lines. For now I disabled it to prevent infinite cycle
             if (change.text.includes("\n")) {
@@ -123,11 +118,9 @@ export function activate(context: vscode.ExtensionContext) {
             // Calculate the range where newly added content should be put into
             const replaceRange = new vscode.Range(
               change.range.start,
-              new vscode.Position(
-                change.range.end.line,
-                change.range.start.character + change.text.length
-              )
-            );
+              change.range.end
+              );
+            
             console.log("text ", change.text);
             console.log("range ", replaceRange);
             client.sendTextChanges(replaceRange, change.text);
