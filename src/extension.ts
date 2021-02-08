@@ -123,7 +123,7 @@ export function activate(context: vscode.ExtensionContext) {
             
             console.log("text ", change.text);
             console.log("range ", replaceRange);
-            client.sendTextChanges(replaceRange, change.text);
+            client.sendTextChanges(replaceRange, change.text, "");
           });
         });
       });
