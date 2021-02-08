@@ -89,6 +89,50 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // This is a test command for reading from and writing to text editor
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.startSharingFileEdit", () => {
+      vscode.window.showInformationMessage("Started Sharing File Edits!");
+
+      // This is like the current opened window in the VSCode screen
+      editor = vscode.window.activeTextEditor;
+      document = editor?.document;
+
+      changeSubscription = vscode.workspace.onDidChangeTextDocument((event) => {
+        if (!document || !editor) {
+          return;
+        }
+
+        // This function editor.edit() lets you modify the content of the current document
+        editor.edit((editBuilder) => {
+          // Detect changes in the editor and convert it to uppercase
+          event.contentChanges.forEach((change) => {
+
+
+            // I couldn't find a workaround with text with containing new lines. For now I disabled it to prevent infinite cycle
+            if (change.text.includes("\n")) {
+              return;
+            }
+
+            // The change.range gives you the range of the old content's range, not the range of the newly added content
+            // Calculate the range where newly added content should be put into
+            const replaceRange = new vscode.Range(
+              change.range.start,
+              change.range.end
+              );
+            
+            console.log("text ", change.text);
+            console.log("range ", replaceRange);
+            client.sendTextChanges(replaceRange, change.text);
+          });
+        });
+      });
+
+      // Subscriptions in context.subscriptions get disposed when the extension is deactivated
+      context.subscriptions.push(changeSubscription);
+    })
+  );
+
   // This is a the stop command for file test edit
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.stopTestFileEdit", () => {
@@ -107,14 +151,15 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.testListen", async () => {
       client.listenTCP(8000);
+      client.listenUDP(9000);
     })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.testSendData", async () => {
       // This ip adress will dummy and will be different for different machines
-      const message = client.createMessage(MessageType.discover, null);
-      client.sendDataTCP("192.168.1.67", 8000, message);
+      const message = client.createMessage(MessageType.discover);
+      client.sendUDPBroadcast(9000, message);
     })
   );
 }

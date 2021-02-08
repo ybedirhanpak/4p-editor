@@ -1,12 +1,16 @@
 import * as net from "net";
 import * as dgram from "dgram";
 import { UIData } from "./ui/SidebarProvider";
-import { Session, Message, MessageType } from "./message";
 
+import { Session, Message, MessageType } from "./message";
+import * as vscode from "vscode";
+
+const BROADCAST_ADDRESS = "25.255.255.255";
 const DEFAULT_TCP_PORT = 12345;
 const DEFAULT_UDP_PORT = 12346;
 const DISCOVERY_BULK = 3;
-const DISCOVERY_INTERVAL = 60 * 1000;
+const STATUS_BULK = 3;
+const DISCOVERY_INTERVAL = 60000 * 1000; // 60 seconds
 
 export interface ClientStatus {
   username: string;
@@ -14,12 +18,30 @@ export interface ClientStatus {
   session: Session;
 }
 
+export interface JoinPrivateRequest {
+  key: string;
+}
+
+export interface JoinSessionRespone {
+  accept: boolean;
+  message?: string;
+}
+export interface InitFile {
+  document: vscode.TextDocument;
+  text: string;
+}
+export interface TextChange {
+  range: vscode.Range;
+  text: string;
+}
 export class Client {
   public username = "";
   public session: Session = {
-    public: false,
+    isPublic: false,
     joinable: false,
   };
+  private key = "";
+  private joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
   private uiProvider: any;
@@ -34,20 +56,30 @@ export class Client {
     this.uiProvider?.onClientMessage(data);
   }
 
+  private updateOtherClients() {
+    this.notifyUIProvider({
+      type: "updateOtherClients",
+      payload: {
+        clientsMap: this.otherClients,
+        hasSession: this.joinedSession || this.session.joinable,
+      },
+    });
+  }
+
   public listenTCP(port = DEFAULT_TCP_PORT) {
     const server = net.createServer();
 
     server.listen(port, () => {
-      console.log("Listening on :", server.address());
+      console.log("TCP Listening on :", server.address());
     });
 
     server.on("connection", (conn) => {
-      console.log("Connection from", conn.remoteAddress + ":" + conn.remotePort);
+      console.log("TCP Connection from", conn.remoteAddress + ":" + conn.remotePort);
       conn.on("data", (data) => {
         if (conn.remoteAddress) {
           this.handleReceivedMessage(JSON.parse(data.toString()), conn.remoteAddress);
         } else {
-          console.log("Address couldn't be found", conn.remoteAddress + ":" + conn.remotePort);
+          console.log("TCP Address couldn't be found", conn.remoteAddress + ":" + conn.remotePort);
         }
       });
     });
@@ -69,22 +101,22 @@ export class Client {
       const address = server.address();
       const port = address.port;
       const ip = address.address;
-      console.log(`Server is listening at: ${ip}:${port}`);
+      console.log(`UDP Server is listening at: ${ip}:${port}`);
     });
 
     server.on("message", (message, remoteInfo) => {
-      console.log("Server received:", message.toString());
-      console.log("Remote info:", remoteInfo);
+      console.log("UDP Server received:", message.toString());
+      console.log("UDP Remote info:", remoteInfo);
       this.handleBroadcastMessage(JSON.parse(message.toString()), remoteInfo.address);
     });
 
     server.on("error", (error) => {
-      console.log("Error:", error);
+      console.log("UDP Error:", error);
       server.close();
     });
 
     server.on("close", () => {
-      console.log("Server is closed.");
+      console.log("UDP Server is closed.");
     });
 
     server.bind(port);
@@ -110,7 +142,7 @@ export class Client {
     });
 
     const dataString = JSON.stringify(data);
-    client.send(dataString, 0, dataString.length, port, "192.168.1.255", (error) => {
+    client.send(dataString, 0, dataString.length, port, BROADCAST_ADDRESS, (error) => {
       if (error) {
         console.log("Client got an error while sending message:", error);
       }
@@ -129,7 +161,7 @@ export class Client {
 
   private saveClient(username: string, ip: string, session: Session) {
     this.otherClients[username] = { username, ip, session };
-    this.notifyUIProvider({ type: "updateOtherClients", payload: this.otherClients });
+    this.updateOtherClients();
   }
 
   private removeClient(username: string) {
@@ -143,6 +175,12 @@ export class Client {
       case MessageType.discover:
         // Add user into client dictionary
         this.saveClient(username, ip, session);
+        // Send respond to client
+        const responseMessage = this.createMessage(MessageType.discoverResponse);
+        this.sendDataTCP(ip, DEFAULT_TCP_PORT, responseMessage);
+        break;
+      case MessageType.status:
+        this.saveClient(username, ip, session);
         break;
       case MessageType.goodbye:
         // Remove user from client dictionary
@@ -155,7 +193,34 @@ export class Client {
 
   private handleReceivedMessage(message: Message, ip: string) {
     console.log("Message received", message);
-    // TODO: Implement this function
+    const { username, type, session, payload } = message;
+
+    switch (type) {
+      case MessageType.discoverResponse:
+        // Add user into client dictionary
+        this.saveClient(username, ip, session);
+        break;
+      case MessageType.joinSession:
+        this.handleSessionJoin(payload?.key, ip, username);
+        break;
+      case MessageType.responseSession:
+        this.handleJoinSessionResponse(payload, username);
+        break;
+      case MessageType.leaveSession:
+        this.handleLeaveSessionMessage(username);
+        break;
+      case MessageType.closeSession:
+        this.handleCloseSessionMessage(username);
+        break;
+      case MessageType.document:
+        this.receivingFile(payload);
+        break;
+      case MessageType.textChanges:
+        this.handleTextChanges(payload);
+        break;
+      default:
+        break;
+    }
   }
 
   private sendDiscovery() {
@@ -172,6 +237,12 @@ export class Client {
     }, DISCOVERY_INTERVAL);
   }
 
+  private sendStatus() {
+    for (let i = 0; i < STATUS_BULK; i++) {
+      const statusUpdateMessage = this.createMessage(MessageType.status);
+      this.sendUDPBroadcast(DEFAULT_UDP_PORT, statusUpdateMessage);
+    }
+  }
   private sendGoodbye() {
     const goodbyeMessage = this.createMessage(MessageType.goodbye);
 
@@ -185,7 +256,9 @@ export class Client {
     console.log("Client log in with", username);
     this.username = username;
     this.notifyUIProvider({ type: "successfulLogin", payload: username });
+    this.updateOtherClients();
     this.listenUDP(DEFAULT_UDP_PORT);
+    this.listenTCP(DEFAULT_TCP_PORT);
     this.sendDiscovery();
   }
 
@@ -196,35 +269,212 @@ export class Client {
     this.sendGoodbye();
   }
 
-  public createSession() {
-    // TODO: Generate key for this session
-    // TODO: Implement this function
+  public createSession(isPublic: boolean): string {
+    this.session = {
+      isPublic: isPublic,
+      joinable: true,
+    };
+
+    this.sendStatus();
+
+    const key = Math.random().toString(36).substring(7);
+    this.key = key;
+
+    this.notifyUIProvider({ type: "sessionCreated", payload: { key, isPublic } });
+    return key;
   }
 
   public joinPublicSession(username: string) {
-    // TODO: Implement this function
+    const otherClient = this.otherClients[username];
+    const { ip, session } = otherClient;
+
+    if (session.joinable) {
+      const joinPublicSessionMessage = this.createMessage(MessageType.joinSession);
+      this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinPublicSessionMessage);
+    } else {
+      // Let user know that the session is not joinable
+      const message = "You cannot join this session.";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
+    }
   }
 
   public joinPrivateSession(username: string, key: string) {
-    // TODO: Implement this function
+    const joinRequest: JoinPrivateRequest = { key };
+
+    // get ip from otherclients array and pass it to tcp send func
+    const otherClient = this.otherClients[username];
+    const { ip, session } = otherClient;
+
+    if (session.joinable) {
+      const joinPrivateSessionMessage = this.createMessage(MessageType.joinSession, joinRequest);
+      this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinPrivateSessionMessage);
+    } else {
+      // Let user know that the session is not joinable
+      const message = "You cannot join this session.";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
+    }
   }
 
-  public leaveSession(username: string) {
-    // TODO: Implement this function
+  // IF public session --> key is "" so this parameter will always
+  // be used except its a private session
+  // this handles the sessin join request of a other user
+  public handleSessionJoin(key: string | undefined, ip: string, username: string) {
+    if (!this.session.joinable) {
+      this.respondToJoinSessionRequest(ip, false, "Rejected: Session is not joinable");
+      return;
+    }
+
+    if (key) {
+      // Private session
+      if (key === this.key) {
+        this.startSession(username);
+        this.respondToJoinSessionRequest(ip, true);
+      } else {
+        this.respondToJoinSessionRequest(ip, false, "Rejected: Session Key is incorrect");
+      }
+    } else {
+      // Public session
+      this.startSession(username);
+      this.respondToJoinSessionRequest(ip, true);
+    }
   }
 
-  public endSession() {
+  public respondToJoinSessionRequest(ip: string, accept: boolean, message?: string) {
+    const joinSessionRespone: JoinSessionRespone = { accept, message };
+    const joinSessionResponseMessage = this.createMessage(
+      MessageType.responseSession,
+      joinSessionRespone
+    );
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, joinSessionResponseMessage);
+  }
+
+  public startSession(username: string) {
+    this.session.joinable = false;
+    this.joinedSession = username;
+    this.sendStatus();
+    this.sendFile();
+    this.notifyUIProvider({ type: "sessionStarted", payload: { username } });
+    //TODO start making file exchange ... and text exchanges
+  }
+
+  // handles the response of a session join request --> if payload succes --> session is joined
+  public handleJoinSessionResponse(payload: JoinSessionRespone, username: string) {
+    const { accept, message } = payload;
+    if (accept) {
+      this.joinedSession = username;
+      this.notifyUIProvider({ type: "joinAccepted", payload: { username } });
+    } else {
+      // Show user reject message
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
+    }
+  }
+
+  public leaveSession() {
+    if (!this.joinedSession) {
+      // Let user know theres in no session to leave
+      const message = "You cannot leave because you are not in a session";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
+      return;
+    }
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
+
+    const leaveSessionMessage = this.createMessage(MessageType.leaveSession);
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, leaveSessionMessage);
+  }
+
+  public handleLeaveSessionMessage(username: string) {
+    if (this.joinedSession === username) {
+      this.joinedSession = "";
+      this.session.joinable = true;
+      this.sendStatus();
+    }
+  }
+
+  public handleCloseSessionMessage(username: string) {
+    if (this.joinedSession === username) {
+      this.joinedSession = "";
+      //TODO: stopp text exchange
+    }
+  }
+
+  public closeSession() {
+    if (!this.session.joinable) {
+      // Let user know theres in no session to end
+      const message = "You cannot close session because you haven't created one.";
+      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
+      return;
+    }
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
+
+    const closeSessionMessage = this.createMessage(MessageType.closeSession);
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, closeSessionMessage);
+
+    this.joinedSession = "";
+    this.session.joinable = false;
+    this.session.isPublic = false;
+    this.sendStatus();
+  }
+
+  public sendTextChanges(range: vscode.Range, text: string) {
+    const textChange: TextChange = { range, text };
+
+    const textChangeMessage = this.createMessage(MessageType.textChanges, textChange);
+
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
+
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, textChangeMessage);
+
     // TODO: Define parameters
     // TODO: Implement this function
   }
 
-  public sendTextChanges() {
-    // TODO: Define parameters
-    // TODO: Implement this function
+  public handleTextChanges(payload: TextChange) {
+    const editor = vscode.window.activeTextEditor;
+
+    //THIS DOESNT WORK I DONT KNOW WHY
+
+    // vscode.window.activeTextEditor?.edit((editBuilder) => {
+    //     const text = payload.text;
+    //     const range = payload.range;
+    //     console.log("text ", text);
+    //     console.log("range ", range);
+    //     editBuilder.replace(range, text);
+    //   });
+
+    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(payload.text),payload.range
+    
+    );
   }
 
-  public handleTextChanges() {
-    // TODO: Define parameters
-    // TODO: Implement this function
+  // TODO: Define parameters
+  // TODO: Implement this function
+
+  public sendFile() {
+    // NOT SURE HOW TO GET CONNECTION FROM extension.ts and network.ts
+    // thats why i used this way --> needs to be changes again
+    let editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+    let document = editor.document;
+    let text = document.getText();
+    const initFile: InitFile = { document, text };
+    console.log(text);
+    console.log(initFile.document?.getText);
+    const documentMessage = this.createMessage(MessageType.document, initFile);
+
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
+
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, documentMessage);
+  }
+
+  public receivingFile(initFile: InitFile) {
+    //vscode.window.showTextDocument(initFile.text.);
+    const text = initFile.text;
+    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(text));
   }
 }

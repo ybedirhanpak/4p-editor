@@ -1,10 +1,11 @@
 export interface Session {
-  public: boolean;
+  isPublic: boolean;
   joinable: boolean;
 }
 
 export enum MessageType {
   discover = "discover",
+  discoverResponse = "discoverResponse",
   goodbye = "goodbye",
   status = "status",
   document = "document",
