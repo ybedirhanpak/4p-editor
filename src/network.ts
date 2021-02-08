@@ -34,12 +34,21 @@ export interface DocumentExchange {
   text: string;
 }
 
-export interface EditorTabChange {}
-
 export interface TextExchange {
   documentName: string;
   range: vscode.Range;
   text: string;
+}
+
+export interface TextExchangeReceive {
+  documentName: string;
+  range: Position[];
+  text: string;
+}
+
+export interface Position {
+  character: number;
+  line: number;
 }
 
 export class Client {
@@ -52,6 +61,7 @@ export class Client {
   private joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
+  private lastNetworkInput: string | undefined = undefined;
   // Util variables
   private uiProvider: any;
   private disposables: vscode.Disposable[] = [];
@@ -228,9 +238,6 @@ export class Client {
       case MessageType.textExchange:
         this.handleTextExchange(payload);
         break;
-      case MessageType.tabChange:
-        this.handleTabChange(payload);
-        break;
       default:
         break;
     }
@@ -274,13 +281,20 @@ export class Client {
     this.listenUDP(DEFAULT_UDP_PORT);
     this.listenTCP(DEFAULT_TCP_PORT);
     this.sendDiscovery();
-
+    const textChangeSub = vscode.workspace.onDidChangeTextDocument((event) => {
+      if (this.joinedSession) {
+        event.contentChanges.forEach((change) => {
+          this.sendTextChanges(event.document, change);
+        });
+      }
+    });
     const sub = vscode.workspace.onDidOpenTextDocument((document) => {
       if (this.joinedSession) {
         this.sendDocument(document);
       }
     });
     this.disposables.push(sub);
+    this.disposables.push(textChangeSub);
   }
 
   public logout() {
@@ -438,7 +452,16 @@ export class Client {
     this.sendStatus();
   }
 
-  public sendTextChanges(range: vscode.Range, text: string, documentName: string) {
+  public sendTextChanges(
+    document: vscode.TextDocument,
+    change: vscode.TextDocumentContentChangeEvent
+  ) {
+    const { text, range } = change;
+    if (this.lastNetworkInput === text) {
+      this.lastNetworkInput = undefined;
+      return;
+    }
+    const documentName = getRelativePath(document.fileName);
     const textChange: TextExchange = { range, text, documentName };
 
     const textChangeMessage = this.createMessage(MessageType.textExchange, textChange);
@@ -447,28 +470,40 @@ export class Client {
     const { ip } = otherClient;
 
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, textChangeMessage);
-
-    // TODO: Define parameters
-    // TODO: Implement this function
   }
 
-  public handleTextExchange(payload: TextExchange) {
-    const editor = vscode.window.activeTextEditor;
-
-    //THIS DOESNT WORK I DONT KNOW WHY
-
-    // vscode.window.activeTextEditor?.edit((editBuilder) => {
-    //     const text = payload.text;
-    //     const range = payload.range;
-    //     console.log("text ", text);
-    //     console.log("range ", range);
-    //     editBuilder.replace(range, text);
-    //   });
-
-    vscode.window.activeTextEditor?.insertSnippet(
-      new vscode.SnippetString(payload.text),
-      payload.range
+  public getVSRange(range: Position[], textLength: number = 0) {
+    return new vscode.Range(
+      new vscode.Position(range[0].line, range[0].character),
+      new vscode.Position(range[1].line, range[1].character + textLength)
     );
+  }
+
+  public handleTextExchange(payload: TextExchangeReceive) {
+    const { range, text, documentName } = payload;
+
+    // Get current editor
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      return;
+    }
+
+    const document = editor.document;
+    const currentDocumentName = getRelativePath(document.fileName);
+    if (currentDocumentName !== documentName) {
+      return;
+    }
+
+    const prevText = document.getText(this.getVSRange(range, text.length));
+    if (prevText === text) {
+      return;
+    }
+
+    this.lastNetworkInput = text;
+
+    editor.edit((editBuilder) => {
+      editBuilder.replace(this.getVSRange(range), text);
+    });
   }
 
   public sendCurrentEditorFile() {
@@ -528,6 +563,4 @@ export class Client {
       vscode.window.showTextDocument(document);
     });
   }
-
-  public handleTabChange(payload: any) {}
 }
