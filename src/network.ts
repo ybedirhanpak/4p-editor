@@ -61,6 +61,8 @@ export class Client {
   private joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
+  private changeFromSession = false;
+  private turn = 0;
   // Util variables
   private uiProvider: any;
   private disposables: vscode.Disposable[] = [];
@@ -281,11 +283,13 @@ export class Client {
     this.listenTCP(DEFAULT_TCP_PORT);
     this.sendDiscovery();
     const textChangeSub = vscode.workspace.onDidChangeTextDocument((event) => {
+      while (this.turn === 0 && this.changeFromSession) {}
       if (this.joinedSession) {
         event.contentChanges.forEach((change) => {
           this.sendTextChanges(event.document, change);
         });
       }
+      this.turn = 0;
     });
 
     const sub = vscode.workspace.onDidOpenTextDocument((document) => {
@@ -476,6 +480,7 @@ export class Client {
   }
 
   public handleTextExchange(payload: TextExchangeReceive) {
+    this.changeFromSession = true;
     const { range, text, documentName } = payload;
 
     // Get current editor
@@ -497,6 +502,11 @@ export class Client {
 
     editor.edit((editBuilder) => {
       editBuilder.replace(this.getVSRange(range), text);
+      this.turn = 1;
+      // Make sure that onDidChangeTextDocument is triggered
+      // Wait for onDidChangeTextDocument to be triggered
+      while (this.turn === 1) {}
+      this.changeFromSession = false;
     });
   }
 
