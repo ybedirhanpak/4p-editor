@@ -8,12 +8,13 @@ export enum MessageType {
   discoverResponse = "discoverResponse",
   goodbye = "goodbye",
   status = "status",
-  document = "document",
   joinSession = "joinSession",
   responseSession = "responseSession",
-  textChanges = "textChanges",
   leaveSession = "leaveSession",
   closeSession = "closeSession",
+  documentExchange = "documentExchange",
+  textExchange = "textExchange",
+  tabChange = "tabChange",
 }
 
 export interface Message {

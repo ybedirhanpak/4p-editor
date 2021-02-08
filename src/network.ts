@@ -1,9 +1,11 @@
 import * as net from "net";
 import * as dgram from "dgram";
-import { UIData } from "./ui/SidebarProvider";
-
-import { Session, Message, MessageType } from "./message";
+import * as fs from "fs";
 import * as vscode from "vscode";
+
+import { getAbsPath, getRelativePath, generateOldPath } from "./file-manager";
+import { UIData } from "./ui/SidebarProvider";
+import { Session, Message, MessageType } from "./message";
 
 const BROADCAST_ADDRESS = "25.255.255.255";
 const DEFAULT_TCP_PORT = 12345;
@@ -26,14 +28,20 @@ export interface JoinSessionRespone {
   accept: boolean;
   message?: string;
 }
-export interface InitFile {
-  document: vscode.TextDocument;
+
+export interface DocumentExchange {
+  name: string;
   text: string;
 }
-export interface TextChange {
+
+export interface EditorTabChange {}
+
+export interface TextExchange {
+  documentName: string;
   range: vscode.Range;
   text: string;
 }
+
 export class Client {
   public username = "";
   public session: Session = {
@@ -212,11 +220,14 @@ export class Client {
       case MessageType.closeSession:
         this.handleCloseSessionMessage(username);
         break;
-      case MessageType.document:
-        this.receivingFile(payload);
+      case MessageType.documentExchange:
+        this.handleDocumentExchange(payload);
         break;
-      case MessageType.textChanges:
-        this.handleTextChanges(payload);
+      case MessageType.textExchange:
+        this.handleTextExchange(payload);
+        break;
+      case MessageType.tabChange:
+        this.handleTabChange(payload);
         break;
       default:
         break;
@@ -243,6 +254,7 @@ export class Client {
       this.sendUDPBroadcast(DEFAULT_UDP_PORT, statusUpdateMessage);
     }
   }
+
   private sendGoodbye() {
     const goodbyeMessage = this.createMessage(MessageType.goodbye);
 
@@ -352,7 +364,7 @@ export class Client {
     this.session.joinable = false;
     this.joinedSession = username;
     this.sendStatus();
-    this.sendFile();
+    this.sendCurrentEditorFile();
     this.notifyUIProvider({ type: "sessionStarted", payload: { username } });
     //TODO start making file exchange ... and text exchanges
   }
@@ -417,10 +429,10 @@ export class Client {
     this.sendStatus();
   }
 
-  public sendTextChanges(range: vscode.Range, text: string) {
-    const textChange: TextChange = { range, text };
+  public sendTextChanges(range: vscode.Range, text: string, documentName: string) {
+    const textChange: TextExchange = { range, text, documentName };
 
-    const textChangeMessage = this.createMessage(MessageType.textChanges, textChange);
+    const textChangeMessage = this.createMessage(MessageType.textExchange, textChange);
 
     const otherClient = this.otherClients[this.joinedSession];
     const { ip } = otherClient;
@@ -431,7 +443,7 @@ export class Client {
     // TODO: Implement this function
   }
 
-  public handleTextChanges(payload: TextChange) {
+  public handleTextExchange(payload: TextExchange) {
     const editor = vscode.window.activeTextEditor;
 
     //THIS DOESNT WORK I DONT KNOW WHY
@@ -444,27 +456,29 @@ export class Client {
     //     editBuilder.replace(range, text);
     //   });
 
-    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(payload.text),payload.range
-    
+    vscode.window.activeTextEditor?.insertSnippet(
+      new vscode.SnippetString(payload.text),
+      payload.range
     );
   }
 
-  // TODO: Define parameters
-  // TODO: Implement this function
-
-  public sendFile() {
-    // NOT SURE HOW TO GET CONNECTION FROM extension.ts and network.ts
-    // thats why i used this way --> needs to be changes again
-    let editor = vscode.window.activeTextEditor;
+  public sendCurrentEditorFile() {
+    const editor = vscode.window.activeTextEditor;
     if (!editor) {
+      this.notifyUIProvider({
+        type: "showErrorMessage",
+        payload: { message: "There is no editor." },
+      });
       return;
     }
-    let document = editor.document;
-    let text = document.getText();
-    const initFile: InitFile = { document, text };
-    console.log(text);
-    console.log(initFile.document?.getText);
-    const documentMessage = this.createMessage(MessageType.document, initFile);
+
+    // Receive current document
+    const document = editor.document;
+    const name = getRelativePath(document.fileName);
+    const text = document.getText();
+
+    const documentExchange: DocumentExchange = { name, text };
+    const documentMessage = this.createMessage(MessageType.documentExchange, documentExchange);
 
     const otherClient = this.otherClients[this.joinedSession];
     const { ip } = otherClient;
@@ -472,9 +486,28 @@ export class Client {
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, documentMessage);
   }
 
-  public receivingFile(initFile: InitFile) {
-    //vscode.window.showTextDocument(initFile.text.);
-    const text = initFile.text;
-    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(text));
+  public handleDocumentExchange(documentExchange: DocumentExchange) {
+    const { text, name } = documentExchange;
+    const absPath = getAbsPath(name);
+    if (fs.existsSync(absPath)) {
+      // Document already exists, save current content into "<path>.old"
+      const oldContent = fs.readFileSync(absPath).toString();
+      const oldFile = generateOldPath(name);
+      fs.writeFileSync(oldFile, oldContent);
+      this.notifyUIProvider({
+        type: "showInfoMessage",
+        payload: { message: `${oldFile} is created with old content.` },
+      });
+    }
+    fs.writeFileSync(absPath, text);
+    this.notifyUIProvider({
+      type: "showInfoMessage",
+      payload: { message: `Document created ${name}` },
+    });
+    vscode.workspace.openTextDocument(absPath).then((document) => {
+      vscode.window.showTextDocument(document);
+    });
   }
+
+  public handleTabChange(payload: any) {}
 }
