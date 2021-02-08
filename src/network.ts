@@ -2,6 +2,9 @@ import * as net from "net";
 import * as dgram from "dgram";
 import * as fs from "fs";
 import * as vscode from "vscode";
+const asyncLock = require("async-lock");
+const lock = new asyncLock();
+const key = {};
 
 import { getAbsPath, getRelativePath, generateOldPath, isOldFile } from "./file-manager";
 import { UIData } from "./ui/SidebarProvider";
@@ -501,9 +504,19 @@ export class Client {
 
     this.lastNetworkInput = text;
 
-    editor.edit((editBuilder) => {
-      editBuilder.replace(this.getVSRange(range), text);
-    });
+    lock.acquire(
+      key,
+      (x: any) => {
+        console.log("Key acquired", x);
+        editor.edit((editBuilder) => {
+          editBuilder.replace(this.getVSRange(range), text);
+          console.log("Editbuilder replaced");
+        });
+      },
+      (err: any, ret: any) => {
+        console.log("Editbuilder replaced", err, ret);
+      }
+    );
   }
 
   public sendCurrentEditorFile() {
