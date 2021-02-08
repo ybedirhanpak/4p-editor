@@ -61,7 +61,8 @@ export class Client {
   private joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
-  private lastTextInput = "";
+  private lastKeyboardInput = "";
+  private lastNetworkInput = "";
   // Util variables
   private uiProvider: any;
   private disposables: vscode.Disposable[] = [];
@@ -457,7 +458,11 @@ export class Client {
     change: vscode.TextDocumentContentChangeEvent
   ) {
     const { text, range } = change;
-    this.lastTextInput = text;
+    if (this.lastNetworkInput === text) {
+      this.lastNetworkInput = "";
+      return;
+    }
+    this.lastKeyboardInput = text;
     const documentName = getRelativePath(document.fileName);
     const textChange: TextExchange = { range, text, documentName };
 
@@ -491,8 +496,8 @@ export class Client {
       return;
     }
 
-    if (text === this.lastTextInput) {
-      this.lastTextInput = "";
+    if (text === this.lastKeyboardInput) {
+      this.lastKeyboardInput = "";
       return;
     }
 
@@ -500,6 +505,8 @@ export class Client {
     if (prevText === text) {
       return;
     }
+
+    this.lastNetworkInput = text;
 
     editor.edit((editBuilder) => {
       editBuilder.replace(this.getVSRange(range), text);
