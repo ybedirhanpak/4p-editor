@@ -14,7 +14,6 @@ export enum MessageType {
   closeSession = "closeSession",
   documentExchange = "documentExchange",
   textExchange = "textExchange",
-  tabChange = "tabChange",
 }
 
 export interface Message {
