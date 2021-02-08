@@ -67,6 +67,11 @@
 				"title": "Test Send Data"
 			},
 			{
+				"command": "4p-editor.startSharingFileEdit",
+				"category": "4P Editor",
+				"title": "start sharing file changes"
+			},
+			{
 				"command": "4p-editor.showSamplePanel",
 				"category": "4P Editor",
 				"title": "Show Sample Panel"

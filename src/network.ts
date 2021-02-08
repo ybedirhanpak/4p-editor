@@ -212,10 +212,10 @@ export class Client {
       case MessageType.closeSession:
         this.handleCloseSessionMessage(username);
         break;
-        case MessageType.document:
+      case MessageType.document:
         this.receivingFile(payload);
         break;
-        case MessageType.textChanges:
+      case MessageType.textChanges:
         this.handleTextChanges(payload);
         break;
       default:
@@ -417,10 +417,10 @@ export class Client {
     this.sendStatus();
   }
 
-  public sendTextChanges(range: vscode.Range,text: string ) {
-    const textChange: TextChange = { range, text};
+  public sendTextChanges(range: vscode.Range, text: string) {
+    const textChange: TextChange = { range, text };
 
-    const textChangeMessage = this.createMessage(MessageType.textChanges,textChange);
+    const textChangeMessage = this.createMessage(MessageType.textChanges, textChange);
 
     const otherClient = this.otherClients[this.joinedSession];
     const { ip } = otherClient;
@@ -432,17 +432,26 @@ export class Client {
   }
 
   public handleTextChanges(payload: TextChange) {
-    vscode.window.activeTextEditor?.edit((editBuilder) => {
-      editBuilder.replace(payload.range, payload.text);
-    });
+    const editor = vscode.window.activeTextEditor;
 
-    // TODO: Define parameters
-    // TODO: Implement this function
+
+    // THIS DOESNT WORK I DONT KNOW WHY
+    // if (editor)  {
+    //   editor.edit((editBuilder) => {
+    //     const text = payload.text;
+    //     const range = payload.range;
+    //     editBuilder.replace(range, text);
+    //   });
+    //   }
+    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(payload.text), payload.range);
+
   }
 
-  public sendFile() {
+  // TODO: Define parameters
+  // TODO: Implement this function
 
-    // NOT SURE HOW TO GET CONNECTION FROM extension.ts and network.ts 
+  public sendFile() {
+    // NOT SURE HOW TO GET CONNECTION FROM extension.ts and network.ts
     // thats why i used this way --> needs to be changes again
     let editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -450,21 +459,18 @@ export class Client {
     }
     let document = editor.document;
     let text = document.getText();
-    const initFile: InitFile = { document, text};
+    const initFile: InitFile = { document, text };
     console.log(text);
     console.log(initFile.document?.getText);
-    const documentMessage = this.createMessage(MessageType.document,initFile );
+    const documentMessage = this.createMessage(MessageType.document, initFile);
 
     const otherClient = this.otherClients[this.joinedSession];
     const { ip } = otherClient;
 
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, documentMessage);
-
-
   }
 
-
-  public receivingFile(initFile: InitFile){
+  public receivingFile(initFile: InitFile) {
     //vscode.window.showTextDocument(initFile.text.);
     const text = initFile.text;
     vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(text));
