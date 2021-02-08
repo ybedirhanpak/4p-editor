@@ -27,8 +27,12 @@ export interface JoinSessionRespone {
   message?: string;
 }
 export interface InitFile {
-  document: vscode.TextDocument| undefined;
-  text: string | undefined;
+  document: vscode.TextDocument;
+  text: string;
+}
+export interface TextChange {
+  range: vscode.Range;
+  text: string;
 }
 export class Client {
   public username = "";
@@ -210,6 +214,9 @@ export class Client {
         break;
         case MessageType.document:
         this.receivingFile(payload);
+        break;
+        case MessageType.textChanges:
+        this.handleTextChanges(payload);
         break;
       default:
         break;
@@ -410,12 +417,25 @@ export class Client {
     this.sendStatus();
   }
 
-  public sendTextChanges() {
+  public sendTextChanges(range: vscode.Range,text: string ) {
+    const textChange: TextChange = { range, text};
+
+    const textChangeMessage = this.createMessage(MessageType.textChanges,textChange);
+
+    const otherClient = this.otherClients[this.joinedSession];
+    const { ip } = otherClient;
+
+    this.sendDataTCP(ip, DEFAULT_TCP_PORT, textChangeMessage);
+
     // TODO: Define parameters
     // TODO: Implement this function
   }
 
-  public handleTextChanges() {
+  public handleTextChanges(payload: TextChange) {
+    vscode.window.activeTextEditor?.edit((editBuilder) => {
+      editBuilder.replace(payload.range, payload.text);
+    });
+
     // TODO: Define parameters
     // TODO: Implement this function
   }
@@ -425,8 +445,11 @@ export class Client {
     // NOT SURE HOW TO GET CONNECTION FROM extension.ts and network.ts 
     // thats why i used this way --> needs to be changes again
     let editor = vscode.window.activeTextEditor;
-    let document = editor?.document;
-    let text = document?.getText();
+    if (!editor) {
+      return;
+    }
+    let document = editor.document;
+    let text = document.getText();
     const initFile: InitFile = { document, text};
     console.log(text);
     console.log(initFile.document?.getText);
@@ -444,13 +467,6 @@ export class Client {
   public receivingFile(initFile: InitFile){
     //vscode.window.showTextDocument(initFile.text.);
     const text = initFile.text;
-    console.log(text);
-    console.log(initFile.document?.getText);
-
-    this.notifyUIProvider({ type: "showErrorMessage", payload: { text } });
-
-    // open new doc in editor ....
-    // fill in document text and file name
-    //this.notifyUIProvider({ type: "receiveFile", payload: { payload } });
+    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(text));
   }
 }

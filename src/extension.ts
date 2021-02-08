@@ -89,6 +89,56 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // This is a test command for reading from and writing to text editor
+  context.subscriptions.push(
+    vscode.commands.registerCommand("4p-editor.startSharingFileEdit", () => {
+      vscode.window.showInformationMessage("Started Sharing File Edits!");
+
+      // This is like the current opened window in the VSCode screen
+      editor = vscode.window.activeTextEditor;
+      document = editor?.document;
+
+      changeSubscription = vscode.workspace.onDidChangeTextDocument((event) => {
+        if (!document || !editor) {
+          return;
+        }
+
+        // This function editor.edit() lets you modify the content of the current document
+        editor.edit((editBuilder) => {
+          // Detect changes in the editor and convert it to uppercase
+          event.contentChanges.forEach((change) => {
+            const previousText = document?.getText(change.range);
+
+            // Don't go crazy with infinite change cycle
+            if (previousText === change.text) {
+              return;
+            }
+
+            // I couldn't find a workaround with text with containing new lines. For now I disabled it to prevent infinite cycle
+            if (change.text.includes("\n")) {
+              return;
+            }
+
+            // The change.range gives you the range of the old content's range, not the range of the newly added content
+            // Calculate the range where newly added content should be put into
+            const replaceRange = new vscode.Range(
+              change.range.start,
+              new vscode.Position(
+                change.range.end.line,
+                change.range.start.character + change.text.length
+              )
+            );
+
+            client.sendTextChanges(replaceRange, change.text);
+          });
+        });
+      });
+
+      // Subscriptions in context.subscriptions get disposed when the extension is deactivated
+      context.subscriptions.push(changeSubscription);
+    })
+  );
+
   // This is a the stop command for file test edit
   context.subscriptions.push(
     vscode.commands.registerCommand("4p-editor.stopTestFileEdit", () => {
