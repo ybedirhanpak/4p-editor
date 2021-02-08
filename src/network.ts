@@ -2,9 +2,9 @@ import * as net from "net";
 import * as dgram from "dgram";
 import * as fs from "fs";
 import * as vscode from "vscode";
-const asyncLock = require("async-lock");
+
+const asyncLock = require("node-async-locks").AsyncLock;
 const lock = new asyncLock();
-const key = {};
 
 import { getAbsPath, getRelativePath, generateOldPath, isOldFile } from "./file-manager";
 import { UIData } from "./ui/SidebarProvider";
@@ -482,7 +482,7 @@ export class Client {
     );
   }
 
-  public handleTextExchange(payload: TextExchangeReceive) {
+  public async handleTextExchange(payload: TextExchangeReceive) {
     const { range, text, documentName } = payload;
 
     // Get current editor
@@ -504,19 +504,12 @@ export class Client {
 
     this.lastNetworkInput = text;
 
-    lock.acquire(
-      key,
-      (x: any) => {
-        console.log("Key acquired", x);
-        editor.edit((editBuilder) => {
-          editBuilder.replace(this.getVSRange(range), text);
-          console.log("Editbuilder replaced");
-        });
-      },
-      (err: any, ret: any) => {
-        console.log("Editbuilder replaced", err, ret);
-      }
-    );
+    lock.enter((token: any) => {
+      editor.edit((editBuilder) => {
+        editBuilder.replace(this.getVSRange(range), text);
+      });
+      lock.leave(token);
+    });
   }
 
   public sendCurrentEditorFile() {

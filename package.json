@@ -106,6 +106,6 @@
 		"webpack-cli": "^4.2.0"
 	},
 	"dependencies": {
-		"async-lock": "^1.2.8"
+		"node-async-locks": "^2.0.0"
 	}
 }
