@@ -104,5 +104,8 @@
 		"ts-loader": "^8.0.11",
 		"webpack": "^5.10.0",
 		"webpack-cli": "^4.2.0"
+	},
+	"dependencies": {
+		"node-async-locks": "^2.0.0"
 	}
 }

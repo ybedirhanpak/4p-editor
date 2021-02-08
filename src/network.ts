@@ -3,6 +3,9 @@ import * as dgram from "dgram";
 import * as fs from "fs";
 import * as vscode from "vscode";
 
+const asyncLock = require("node-async-locks").AsyncLock;
+const lock = new asyncLock();
+
 import { getAbsPath, getRelativePath, generateOldPath, isOldFile } from "./file-manager";
 import { UIData } from "./ui/SidebarProvider";
 import { Session, Message, MessageType } from "./message";
@@ -479,7 +482,7 @@ export class Client {
     );
   }
 
-  public handleTextExchange(payload: TextExchangeReceive) {
+  public async handleTextExchange(payload: TextExchangeReceive) {
     const { range, text, documentName } = payload;
 
     // Get current editor
@@ -501,8 +504,11 @@ export class Client {
 
     this.lastNetworkInput = text;
 
-    editor.edit((editBuilder) => {
-      editBuilder.replace(this.getVSRange(range), text);
+    lock.enter((token: any) => {
+      editor.edit((editBuilder) => {
+        editBuilder.replace(this.getVSRange(range), text);
+      });
+      lock.leave(token);
     });
   }
 
