@@ -128,7 +128,8 @@ export function activate(context: vscode.ExtensionContext) {
                 change.range.start.character + change.text.length
               )
             );
-
+            console.log("text ", change.text);
+            console.log("range ", replaceRange);
             client.sendTextChanges(replaceRange, change.text);
           });
         });

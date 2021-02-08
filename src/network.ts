@@ -432,18 +432,20 @@ export class Client {
   }
 
   public handleTextChanges(payload: TextChange) {
-    const editor = vscode.window.activeTextEditor;
+    //const editor = vscode.window.activeTextEditor;
 
 
-    // THIS DOESNT WORK I DONT KNOW WHY
-    // if (editor)  {
-    //   editor.edit((editBuilder) => {
-    //     const text = payload.text;
-    //     const range = payload.range;
-    //     editBuilder.replace(range, text);
-    //   });
-    //   }
-    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(payload.text), payload.range);
+    //THIS DOESNT WORK I DONT KNOW WHY
+    
+    vscode.window.activeTextEditor?.edit((editBuilder) => {
+        const text = payload.text;
+        const range = payload.range;
+        console.log("text ", text);
+        console.log("range ", range);
+        editBuilder.replace(range, text);
+      });
+      
+    //vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(payload.text), payload.range);
 
   }
 
