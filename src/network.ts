@@ -3,7 +3,7 @@ import * as dgram from "dgram";
 import * as fs from "fs";
 import * as vscode from "vscode";
 
-import { getAbsPath, getRelativePath, generateOldPath } from "./file-manager";
+import { getAbsPath, getRelativePath, generateOldPath, isOldFile } from "./file-manager";
 import { UIData } from "./ui/SidebarProvider";
 import { Session, Message, MessageType } from "./message";
 
@@ -52,7 +52,9 @@ export class Client {
   private joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
+  // Util variables
   private uiProvider: any;
+  private disposables: vscode.Disposable[] = [];
 
   constructor() {}
 
@@ -272,6 +274,13 @@ export class Client {
     this.listenUDP(DEFAULT_UDP_PORT);
     this.listenTCP(DEFAULT_TCP_PORT);
     this.sendDiscovery();
+
+    const sub = vscode.workspace.onDidOpenTextDocument((document) => {
+      if (this.joinedSession) {
+        this.sendDocument(document);
+      }
+    });
+    this.disposables.push(sub);
   }
 
   public logout() {
@@ -463,6 +472,10 @@ export class Client {
   }
 
   public sendCurrentEditorFile() {
+    if (!this.joinedSession) {
+      return;
+    }
+
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       this.notifyUIProvider({
@@ -474,7 +487,14 @@ export class Client {
 
     // Receive current document
     const document = editor.document;
+    this.sendDocument(document);
+  }
+
+  public sendDocument(document: vscode.TextDocument) {
     const name = getRelativePath(document.fileName);
+    if (isOldFile(name)) {
+      return;
+    }
     const text = document.getText();
 
     const documentExchange: DocumentExchange = { name, text };

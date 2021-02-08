@@ -21,3 +21,7 @@ export const getAbsPath = (simpleName: string) => {
 export const generateOldPath = (simpleName: string) => {
   return `${ROOT_PATH}/${simpleName}.old`;
 };
+
+export const isOldFile = (name: string) => {
+  return name.endsWith(".old");
+};
