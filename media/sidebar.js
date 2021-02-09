@@ -3,7 +3,6 @@
 
 (function () {
   const vscode = acquireVsCodeApi();
-
   // Login
   const loginWrapper = document.getElementById("login-wrapper");
   const loginInput = document.getElementById("login-input");
@@ -40,7 +39,7 @@
     joinPrivateWrapper.style.display = "block";
     joinPrivateWrapper.style.display = "block";
     otherClientsWrapper.style.display = "block";
-  
+
     ownedSessionWrapper.style.display = "none";
     joinedSessionWrapper.style.display = "none";
   };
@@ -54,6 +53,10 @@
   // Initial setup
   initialUI();
 
+  vscode.postMessage({
+    type: "fetchLoginStatus",
+  });
+
   const onCreateSession = (event, isPublic) => {
     event.preventDefault();
     vscode.postMessage({
@@ -64,10 +67,22 @@
     });
   };
 
-  const onSuccessfulLogin = (username) => {
+  const onSuccessfulLogin = (payload) => {
+    const { username, session, joinedSession, key } = payload;
     loginWrapper.style.display = "none";
     welcomeWrapper.style.display = "block";
     welcome.innerHTML = `Welcome ${username}!`;
+
+    if  (session.joinable) {
+      onSessionCreated({ key, isPublic: session.isPublic });
+      if  (joinedSession) {
+        onSessionStarted({ username: joinedSession });
+      }
+    } else {
+      if  (joinedSession) {
+        onJoinAccepted({ username: joinedSession });
+      }
+    }
   };
 
   const updateOtherClients = (payload) => {
@@ -77,11 +92,11 @@
 
     const usernameList = Object.keys(clientsMap);
 
-    if(usernameList.length === 0) {
-      otherClientsList.innerHTML = '<span>There are no online users.<span>';
+    if (usernameList.length === 0) {
+      otherClientsList.innerHTML = "<span>There are no online users.<span>";
       return;
-    } 
-    
+    }
+
     Object.keys(clientsMap).forEach((username) => {
       const client = clientsMap[username];
       const { ip, session } = client;
@@ -114,7 +129,6 @@
 
       otherClientsList.appendChild(listItem);
     });
-
   };
 
   const onSessionCreated = (payload) => {
@@ -124,7 +138,9 @@
     createSessionWrapper.style.display = "none";
     ownedSessionWrapper.style.display = "block";
     ownedSessionKey.innerHTML = `Your session key: <strong>${key}</strong>`;
-    ownedSessionPublic.innerHTML = `Availability: <strong>${isPublic ? "Public": "Private"}</strong>`;
+    ownedSessionPublic.innerHTML = `Availability: <strong>${
+      isPublic ? "Public" : "Private"
+    }</strong>`;
     ownedSessionClient.innerHTML = `Connected with: <strong>-</strong>`;
   };
 
@@ -209,5 +225,4 @@
     });
     resetWelcomeWrapper();
   });
-
 })();

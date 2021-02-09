@@ -6,11 +6,13 @@ import { MessageType } from "./message";
 import { SamplePanel } from "./ui/SamplePanel";
 import { SidebarProvider } from "./ui/SidebarProvider";
 
+let client: Client;
+
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
   // This line of code will only be executed once when the extension is activated
   console.log("4p-editor is active!");
-  const client = new Client();
+  client = new Client();
   const sidebarProvider = new SidebarProvider(context.extensionUri, client);
   client.setUIProvider(sidebarProvider);
   context.subscriptions.push(
@@ -160,4 +162,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // This method is called when the extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  client.logout();
+}

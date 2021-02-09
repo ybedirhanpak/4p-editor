@@ -112,8 +112,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.window.showErrorMessage(data.payload);
           break;
         }
-        case "receiveFile":  {
+        case "receiveFile": {
           this.initialySetFile(data.payload);
+          break;
+        }
+        case "fetchLoginStatus": {
+          this.client.fetchLoginStatus();
+          break;
         }
         default: {
           break;
