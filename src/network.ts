@@ -60,8 +60,8 @@ export class Client {
     isPublic: false,
     joinable: false,
   };
-  private key = "";
-  private joinedSession = "";
+  public key = "";
+  public joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
   private lastNetworkInput: string | undefined = undefined;
@@ -469,6 +469,7 @@ export class Client {
     this.joinedSession = "";
     this.session.joinable = false;
     this.session.isPublic = false;
+    this.key = "";
     this.sendStatus();
   }
 

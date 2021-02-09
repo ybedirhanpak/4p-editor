@@ -164,4 +164,11 @@ export function activate(context: vscode.ExtensionContext) {
 // This method is called when the extension is deactivated
 export function deactivate() {
   client.logout();
+  if (client.joinedSession) {
+    if (client.key) {
+      client.closeSession();
+    } else {
+      client.leaveSession();
+    }
+  }
 }
