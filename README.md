@@ -1,6 +1,6 @@
 # 4P Editor
 
-This is a VSCode Extension called 4P Editor (Peer-to-peer pair programming Editor) which enables developers to create sessions for pair programming.
+This is a VSCode Extension called 4P Editor (Peer-to-peer pair programming Editor) which enables developers to create sessions for pair programming. Sessions can be either private or public. Public session can be directly joined while private session need a password which is genertated during session creation. After running the extension a user needs to open a file which is immediately shared with his paired session partner. Every openend file will be handled like this. Now every change a user makes on one file in his editor will be shown directly at the other users file.
 
 This project is implemented in the scope of Boğaziçi University CMPE487 course.
 
