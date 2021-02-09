@@ -458,13 +458,6 @@ export class Client {
   }
 
   public closeSession() {
-    if (!this.session.joinable) {
-      // Let user know theres in no session to end
-      const message = "You cannot close session because you haven't created one.";
-      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
-      return;
-    }
-
     if (this.joinedSession) {
       const otherClient = this.otherClients[this.joinedSession];
       const { ip } = otherClient;

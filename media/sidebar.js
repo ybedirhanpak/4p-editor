@@ -81,6 +81,9 @@
     } else {
       if  (joinedSession) {
         onJoinAccepted({ username: joinedSession });
+      } else {
+        // Leave session
+        resetWelcomeWrapper();
       }
     }
   };
