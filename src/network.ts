@@ -60,8 +60,8 @@ export class Client {
     isPublic: false,
     joinable: false,
   };
-  private key = "";
-  private joinedSession = "";
+  public key = "";
+  public joinedSession = "";
   private discoveryInterval: NodeJS.Timeout | undefined;
   private otherClients: { [username: string]: ClientStatus } = {};
   private lastNetworkInput: string | undefined = undefined;
@@ -189,6 +189,7 @@ export class Client {
 
   private removeClient(username: string) {
     delete this.otherClients[username];
+    this.updateOtherClients();
   }
 
   private handleBroadcastMessage(message: Message, ip: string) {
@@ -276,14 +277,29 @@ export class Client {
     }
   }
 
+  public fetchLoginStatus() {
+    if (this.username && this.username !== "") {
+      this.notifyUIProvider({
+        type: "successfulLogin",
+        payload: {
+          username: this.username,
+          session: this.session,
+          joinedSession: this.joinedSession,
+          key: this.key,
+        },
+      });
+      this.updateOtherClients();
+    }
+  }
+
   public login(username: string) {
     console.log("Client log in with", username);
     this.username = username;
-    this.notifyUIProvider({ type: "successfulLogin", payload: username });
-    this.updateOtherClients();
+    this.fetchLoginStatus();
     this.listenUDP(DEFAULT_UDP_PORT);
     this.listenTCP(DEFAULT_TCP_PORT);
     this.sendDiscovery();
+
     const textChangeSub = vscode.workspace.onDidChangeTextDocument((event) => {
       if (this.joinedSession) {
         event.contentChanges.forEach((change) => {
@@ -291,11 +307,13 @@ export class Client {
         });
       }
     });
+
     const sub = vscode.workspace.onDidOpenTextDocument((document) => {
       if (this.joinedSession) {
         this.sendDocument(document);
       }
     });
+
     this.disposables.push(sub);
     this.disposables.push(textChangeSub);
   }
@@ -419,6 +437,8 @@ export class Client {
 
     const leaveSessionMessage = this.createMessage(MessageType.leaveSession);
     this.sendDataTCP(ip, DEFAULT_TCP_PORT, leaveSessionMessage);
+
+    this.joinedSession = "";
   }
 
   public handleLeaveSessionMessage(username: string) {
@@ -426,32 +446,30 @@ export class Client {
       this.joinedSession = "";
       this.session.joinable = true;
       this.sendStatus();
+      this.fetchLoginStatus();
     }
   }
 
   public handleCloseSessionMessage(username: string) {
     if (this.joinedSession === username) {
       this.joinedSession = "";
-      //TODO: stopp text exchange
+      this.fetchLoginStatus();
     }
   }
 
   public closeSession() {
-    if (!this.session.joinable) {
-      // Let user know theres in no session to end
-      const message = "You cannot close session because you haven't created one.";
-      this.notifyUIProvider({ type: "showErrorMessage", payload: { message } });
-      return;
-    }
-    const otherClient = this.otherClients[this.joinedSession];
-    const { ip } = otherClient;
+    if (this.joinedSession) {
+      const otherClient = this.otherClients[this.joinedSession];
+      const { ip } = otherClient;
 
-    const closeSessionMessage = this.createMessage(MessageType.closeSession);
-    this.sendDataTCP(ip, DEFAULT_TCP_PORT, closeSessionMessage);
+      const closeSessionMessage = this.createMessage(MessageType.closeSession);
+      this.sendDataTCP(ip, DEFAULT_TCP_PORT, closeSessionMessage);
+    }
 
     this.joinedSession = "";
     this.session.joinable = false;
     this.session.isPublic = false;
+    this.key = "";
     this.sendStatus();
   }
 
